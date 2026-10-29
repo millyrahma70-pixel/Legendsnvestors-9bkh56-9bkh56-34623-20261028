@@ -20,17 +20,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Build
-        run: npm run build
+
+      - name: Find and Build
+        run: |
+          echo "Finding package.json..."
+          PROJECT_DIR="."
+          if [ -f "Legendsnvestors-9bkh56-9bkh56-34623-20261028/package.json" ]; then
+            PROJECT_DIR="Legendsnvestors-9bkh56-9bkh56-34623-20261028"
+          fi
+          if [ -f "Legendsnvestors-9bkh56-9bkh56-34623-20261028/Legendsnvestors-9bkh56-9bkh56-34623-20261028/package.json" ]; then
+            PROJECT_DIR="Legendsnvestors-9bkh56-9bkh56-34623-20261028/Legendsnvestors-9bkh56-9bkh56-34623-20261028"
+          fi
+          echo "Project dir: $PROJECT_DIR"
+          cd $PROJECT_DIR
+          npm install
+          npm run build
+          echo "Build done, copying dist..."
+          if [ -d "dist" ]; then
+            mkdir -p $GITHUB_WORKSPACE/dist_final
+            cp -r dist/* $GITHUB_WORKSPACE/dist_final/
+          fi
+          cd $GITHUB_WORKSPACE
+          if [ ! -d "dist" ] && [ -d "dist_final" ]; then
+            mv dist_final dist
+          fi
+          ls -la dist/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
