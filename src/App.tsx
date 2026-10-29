@@ -15,6 +15,19 @@ const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
 const ProductPage = lazy(() => import('@/pages/ProductPage'));
 const TeamPage = lazy(() => import('@/pages/TeamPage'));
 const MinePage = lazy(() => import('@/pages/MinePage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const BindCardPage = lazy(() => import('@/pages/BindCardPage'));
+const RecordsPage = lazy(() => import('@/pages/RecordsPage'));
+const RechargePage = lazy(() => import('@/pages/RechargePage'));
+const WithdrawPage = lazy(() => import('@/pages/WithdrawPage'));
+const CheckInPage = lazy(() => import('@/pages/CheckInPage'));
+const TaskCenterPage = lazy(() => import('@/pages/TaskCenterPage'));
+const RechargeStatusPage = lazy(() => import('@/pages/RechargeStatusPage'));
+const WithdrawStatusPage = lazy(() => import('@/pages/WithdrawStatusPage'));
+const CustomerServicePage = lazy(() => import('@/pages/CustomerServicePage'));
+const RegulationPage = lazy(() => import('@/pages/RegulationPage'));
+const RedeemGiftPage = lazy(() => import('@/pages/RedeemGiftPage'));
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 
 const queryClient = new QueryClient();
@@ -40,17 +53,23 @@ const App = () => (
           <Route path="/team" element={<TeamPage />} />
           <Route path="/invite" element={<TeamPage />} />
           
-          {/* FIXED - MinePage IS your Account Page */}
           <Route path="/mine" element={<MinePage />} />
           <Route path="/account" element={<MinePage />} />
           
-          <Route path="/checkin" element={<CloudUserPage />} />
-          <Route path="/tasks" element={<CloudUserPage />} />
-          <Route path="/recharge" element={<CloudUserPage />} />
-          <Route path="/withdraw" element={<CloudUserPage />} />
-          <Route path="/bind-card" element={<CloudUserPage />} />
-          <Route path="/records" element={<CloudUserPage />} />
-          <Route path="/about" element={<CloudUserPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/bind-card" element={<BindCardPage />} />
+          <Route path="/records" element={<RecordsPage />} />
+          <Route path="/recharge" element={<RechargePage />} />
+          <Route path="/recharge-status" element={<RechargeStatusPage />} />
+          <Route path="/withdraw" element={<WithdrawPage />} />
+          <Route path="/withdraw-status" element={<WithdrawStatusPage />} />
+          <Route path="/checkin" element={<CheckInPage />} />
+          <Route path="/tasks" element={<TaskCenterPage />} />
+          <Route path="/customer-service" element={<CustomerServicePage />} />
+          <Route path="/regulation" element={<RegulationPage />} />
+          <Route path="/redeem" element={<RedeemGiftPage />} />
+          
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
