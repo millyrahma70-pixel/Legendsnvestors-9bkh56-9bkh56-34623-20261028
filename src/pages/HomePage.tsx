@@ -1,261 +1,150 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CreditCard, ArrowDownToLine, Calendar, CheckSquare, ChevronRight, Bell, Clock, TrendingUp } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import MessageNotification from '@/components/features/MessageNotification';
-import { getCurrentUser, getUserProducts, creditDailyIncome, getNextPayoutMs, formatUGX } from '@/lib/storage';
-import { PRODUCTS } from '@/constants/products';
-import { toast } from 'sonner';
-import heroBanner from '@/assets/hero-banner.jpg';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
-const GAME_IMAGES = [
-  'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=200&h=150&fit=crop',
-  'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=200&h=150&fit=crop',
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=200&h=150&fit=crop',
-  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=150&fit=crop',
+const VIP_PRODUCTS = [
+  {id:1, vip:1, name:'VIP 1 Legend One BMW', price:30000, daily:3000, img:'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=600'},
+  {id:2, vip:2, name:'VIP 2 Legend One BMW', price:42000, daily:4200, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600'},
+  {id:3, vip:3, name:'VIP 3 Legend One BMW', price:50000, daily:5000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600'},
 ];
 
-function formatCountdown(ms: number): string {
-  if (ms <= 0) return '00:00:00';
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600).toString().padStart(2, '0');
-  const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
-  const s = (totalSec % 60).toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
-}
+function formatUGX(n:number){ return `UGX ${n.toLocaleString()}`; }
 
-export default function HomePage() {
-  const navigate = useNavigate();
-  const [showNotification, setShowNotification] = useState(false);
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
-  const [nextPayoutMs, setNextPayoutMs] = useState(0);
-  const prevBalanceRef = useRef<number | null>(null);
+export default function HomePage(){
+  const nav=useNavigate();
+  const [balance,setBalance]=useState(9000);
+  const [user,setUser]=useState<any>(null);
+  const [activeCount,setActiveCount]=useState(0);
+  const [countdown,setCountdown]=useState('00:00:00');
 
-  useEffect(() => {
-    const shown = sessionStorage.getItem('legend_notification_shown');
-    if (!shown) { setShowNotification(true); sessionStorage.setItem('legend_notification_shown', '1'); }
-  }, []);
-
-  useEffect(() => {
-    // Initialize previous balance tracking
-    const user = getCurrentUser();
-    if (user && prevBalanceRef.current === null) {
-      prevBalanceRef.current = user.balance;
-    }
-
-    const interval = setInterval(() => {
-      const user = getCurrentUser();
-      if (!user) return;
-
-      // Attempt to credit daily income
-      const result = creditDailyIncome(user.id);
-
-      if (result.credited > 0) {
-        // Build a list of contributing products for the toast
-        const activeProds = getUserProducts(user.id).filter(p => p.status === 'active');
-        const productNames = activeProds.map(up => {
-          const def = PRODUCTS.find(p => p.id === up.productId);
-          return def ? `VIP ${def.vip}` : null;
-        }).filter(Boolean).join(', ');
-
-        toast.success(
-          `Daily income credited: +${formatUGX(result.credited)}`,
-          {
-            description: productNames ? `From: ${productNames}` : 'From your active products',
-            duration: 6000,
-            icon: '💰',
-          }
-        );
-
-        setCurrentUser(getCurrentUser());
-      } else {
-        // Just update state silently
-        const fresh = getCurrentUser();
-        setCurrentUser(fresh);
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ nav('/login'); return; }
+    try{
+      const sess=JSON.parse(s);
+      const users=JSON.parse(localStorage.getItem('legend_users')||'{}');
+      const u=users[sess?.user?.email];
+      setUser(u?.data || {full_name:'Investor'});
+      const b=localStorage.getItem('legend_balance');
+      setBalance(b?Number(b):9000);
+      // products
+      const prods=JSON.parse(localStorage.getItem('legend_products')||'[]');
+      setActiveCount(prods.length);
+    }catch{ setUser({full_name:'Investor'}); }
+    
+    // countdown timer 24h
+    const iv=setInterval(()=>{
+      const next=localStorage.getItem('legend_next_payout');
+      if(!next){ setCountdown('00:00:00'); return; }
+      const diff=Number(next)-Date.now();
+      if(diff<=0){ setCountdown('00:00:00'); }
+      else {
+        const h=Math.floor(diff/3600000).toString().padStart(2,'0');
+        const m=Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
+        const s=Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+        setCountdown(`${h}:${m}:${s}`);
       }
+    },1000);
+    return ()=>clearInterval(iv);
+  },[]);
 
-      setNextPayoutMs(getNextPayoutMs(user.id));
-    }, 1000);
+  function signOut(){ localStorage.removeItem('legend_session'); nav('/login'); }
 
-    return () => clearInterval(interval);
-  }, []);
+  return(
+    <div style={{minHeight:'100vh',background:'#0f0f0f',color:'white',paddingBottom:'80px'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto'}}>
+        
+        {/* Header */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 16px'}}>
+          <div style={{color:'#e6a800',fontWeight:800,fontSize:'20px'}}>Legend Investors</div>
+          <button onClick={signOut} style={{background:'#1f1f1f',border:'1px solid #333',color:'white',padding:'8px 16px',borderRadius:'12px',fontSize:'13px'}}>Sign out</button>
+        </div>
 
-  // Initialize payout timer on mount
-  useEffect(() => {
-    const user = getCurrentUser();
-    if (user) setNextPayoutMs(getNextPayoutMs(user.id));
-  }, []);
+        {/* Hero - A New World */}
+        <div style={{margin:'0 16px 14px',borderRadius:'22px',overflow:'hidden',position:'relative',height:'210px'}}>
+          <img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(0,0,0,0.1),rgba(0,0,0,0.85))'}}></div>
+          <div style={{position:'absolute',top:'12px',right:'12px',background:'#e6a800',color:'black',padding:'5px 12px',borderRadius:'20px',fontSize:'11px',fontWeight:800}}>LEGEND</div>
+          <div style={{position:'absolute',bottom:'16px',left:'16px'}}>
+            <div style={{fontSize:'12px',color:'#bbb'}}>Enter</div>
+            <div style={{fontSize:'32px',fontWeight:900,lineHeight:'1'}}>A New World</div>
+            <div style={{fontSize:'13px',color:'#aaa',marginTop:'6px'}}>Your account, products and rewards in one place.</div>
+          </div>
+        </div>
 
-  if (!currentUser) { navigate('/'); return null; }
+        {/* Daily Income Timer - if active */}
+        {activeCount>0 && (
+          <div style={{margin:'0 16px 12px',background:'linear-gradient(135deg,#1a1100,#2d1f00)',border:'1px solid rgba(230,168,0,0.3)',borderRadius:'16px',padding:'12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+              <div style={{width:'32px',height:'32px',background:'#e6a800',borderRadius:'10px',display:'grid',placeItems:'center'}}>⏰</div>
+              <div><div style={{color:'#e6a800',fontSize:'12px',fontWeight:600}}>Next Income Payout</div><div style={{color:'#888',fontSize:'10px'}}>{activeCount} product(s)</div></div>
+            </div>
+            <div style={{background:'rgba(0,0,0,0.4)',border:'1px solid rgba(230,168,0,0.3)',padding:'6px 10px',borderRadius:'10px',color:'#e6a800',fontWeight:900}}>{countdown}</div>
+          </div>
+        )}
 
-  const userProducts = getUserProducts(currentUser.id);
-  const activeProducts = userProducts.filter(p => p.status === 'active');
-  const dailyTotal = activeProducts.reduce((sum, up) => {
-    const def = PRODUCTS.find(p => p.id === up.productId);
-    return sum + (def?.dailyIncome || 0);
-  }, 0);
+        {/* Available balance */}
+        <div style={{margin:'0 16px 12px',background:'#1a1a0f',border:'1px solid #2a2410',borderRadius:'20px',padding:'16px'}}>
+          <div style={{color:'#e6a800',fontSize:'14px'}}>Available balance</div>
+          <div style={{color:'#e6a800',fontSize:'30px',fontWeight:900,marginTop:'6px'}}>{formatUGX(balance)}</div>
+          <div style={{color:'#888',fontSize:'12px',marginTop:'4px'}}>Lifetime income: UGX 0</div>
+          <Link to="/products" style={{display:'inline-block',marginTop:'14px',background:'#e6a800',color:'black',padding:'12px 18px',borderRadius:'12px',fontWeight:800,fontSize:'13px',textDecoration:'none'}}>Explore VIP products</Link>
+        </div>
 
-  const quickActions = [
-    { icon: CreditCard, label: 'Recharge', path: '/recharge', color: '#c9a84c' },
-    { icon: ArrowDownToLine, label: 'Withdraw', path: '/withdraw', color: '#c9a84c' },
-    { icon: Calendar, label: 'Check In', path: '/checkin', color: '#c9a84c' },
-    { icon: CheckSquare, label: 'Tasks', path: '/tasks', color: '#c9a84c' },
-  ];
+        {/* Your earning schedule */}
+        <div style={{margin:'0 16px 12px',background:'#161616',border:'1px solid #222',borderRadius:'20px',padding:'16px'}}>
+          <div style={{width:'28px',height:'28px',borderRadius:'50%',border:'2px solid #e6a800',display:'grid',placeItems:'center',color:'#e6a800',fontSize:'14px'}}>🕒</div>
+          <div style={{fontSize:'17px',fontWeight:700,marginTop:'10px'}}>Your earning schedule</div>
+          <div style={{fontSize:'28px',fontWeight:900,marginTop:'6px'}}>UGX 0</div>
+          <div style={{color:'#888',fontSize:'12px',lineHeight:'1.6',marginTop:'8px'}}>
+            Daily earnings across {activeCount} active products. Each payment is earned exactly 24 hours after activation, then every 24 hours until term end.<br/><br/>
+            No upcoming daily earnings. View your products to check their terms.<br/><br/>
+            The background payout job is not currently connected. Account refresh still credits completed periods without losing eligible earnings.
+          </div>
+          <Link to="/products" style={{color:'#e6a800',fontSize:'12px',marginTop:'12px',display:'block',textDecoration:'none'}}>View active terms</Link>
+        </div>
 
-  return (
-    <AppLayout>
-      {showNotification && <MessageNotification onClose={() => setShowNotification(false)} />}
+        {/* Discover VIP */}
+        <div style={{padding:'0 16px',marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+          <div style={{display:'flex',gap:'8px',alignItems:'center'}}><div style={{width:'3px',height:'18px',background:'#e6a800'}}></div><div style={{fontWeight:800}}>Discover VIP products</div></div>
+          <Link to="/products" style={{color:'#e6a800',fontSize:'12px',textDecoration:'none'}}>View all ›</Link>
+        </div>
 
-      {/* Notification button */}
-      <div className="flex justify-end px-4 pt-3">
-        <button onClick={() => setShowNotification(true)} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-          <Bell size={16} className="text-[#c9a84c]" />
-        </button>
+        {VIP_PRODUCTS.map(p=>(
+          <div key={p.id} style={{margin:'0 16px 12px',borderRadius:'18px',overflow:'hidden',background:'#161616',border:'1px solid #222'}}>
+            <div style={{position:'relative',height:'180px'}}>
+              <img src={p.img} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              <div style={{position:'absolute',top:'10px',left:'10px',background:'#e6a800',color:'black',padding:'5px 12px',borderRadius:'16px',fontWeight:800,fontSize:'12px'}}>VIP {p.vip}</div>
+            </div>
+            <div style={{padding:'12px'}}><div style={{fontWeight:700}}>{p.name}</div><div style={{color:'#e6a800',fontWeight:800,marginTop:'4px'}}>{formatUGX(p.price)}</div><div style={{color:'#888',fontSize:'12px'}}>60-day term</div></div>
+          </div>
+        ))}
+
+        {/* Platform announcement */}
+        <div style={{margin:'0 16px 10px',background:'#161616',border:'1px solid #222',borderRadius:'18px',padding:'16px'}}>
+          <div style={{fontWeight:700}}>Platform announcement</div>
+          <div style={{color:'#aaa',fontSize:'12px',marginTop:'6px'}}>Welcome to Legend Investors. Verify payment details before sending money.</div>
+        </div>
+
+        <div style={{padding:'0 16px',display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'10px'}}>
+          <Link to="/recharge" style={{background:'#1e1e1e',border:'1px solid #333',padding:'10px 16px',borderRadius:'12px',textDecoration:'none',color:'white',fontSize:'13px'}}>📄 Recharge</Link>
+          <Link to="/withdraw" style={{background:'#1e1e1e',border:'1px solid #333',padding:'10px 16px',borderRadius:'12px',textDecoration:'none',color:'white',fontSize:'13px'}}>↗ Withdraw</Link>
+          <Link to="/invite" style={{background:'#1e1e1e',border:'1px solid #333',padding:'10px 16px',borderRadius:'12px',textDecoration:'none',color:'white',fontSize:'13px'}}>🎁 Invite</Link>
+        </div>
+
+        <div style={{margin:'0 16px 20px',background:'#161616',border:'1px solid #222',borderRadius:'18px',padding:'16px'}}>
+          <div style={{fontWeight:700}}>Payment status</div>
+          <div style={{color:'#aaa',fontSize:'12px',marginTop:'6px'}}>1 pending request(s) in your latest 100 orders.</div>
+          <div style={{color:'#e6a800',fontSize:'12px',marginTop:'10px'}}>Track payments & transactions</div>
+        </div>
+
       </div>
 
-      {/* Hero Banner */}
-      <div className="relative mx-4 mt-2 rounded-2xl overflow-hidden">
-        <img src={heroBanner} alt="Legend Investors" className="w-full h-44 object-cover" />
-        <div className="absolute inset-0 flex items-end p-4" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%)' }}>
-          <div>
-            <p className="text-gray-400 text-xs">Enter</p>
-            <h2 className="text-white text-3xl font-black">A New World</h2>
-          </div>
-        </div>
-        <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-bold text-black gold-gradient">
-          LEGEND
-        </div>
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#1a1a1a',borderTop:'1px solid #222',display:'flex',justifyContent:'space-around',padding:'8px 0 10px'}}>
+        <Link to="/home" style={{textAlign:'center',textDecoration:'none',flex:1,background:'#2a2410',borderRadius:'14px',margin:'0 4px',padding:'6px 0'}}><div style={{color:'#e6a800'}}>🏠</div><div style={{fontSize:'11px',color:'#e6a800',fontWeight:700}}>Home</div></Link>
+        <Link to="/products" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>📦</div><div style={{fontSize:'11px',color:'#888'}}>Products</div></Link>
+        <Link to="/team" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>👥</div><div style={{fontSize:'11px',color:'#888'}}>Team</div></Link>
+        <Link to="/account" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>👤</div><div style={{fontSize:'11px',color:'#888'}}>Account</div></Link>
       </div>
-
-      {/* Daily Income Countdown Timer */}
-      {activeProducts.length > 0 && (
-        <div className="mx-4 mt-3 rounded-2xl p-3 flex items-center justify-between"
-          style={{ background: 'linear-gradient(135deg, #1a1100, #2d1f00)', border: '1px solid rgba(201,168,76,0.35)' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center gold-gradient">
-              <Clock size={15} className="text-black" />
-            </div>
-            <div>
-              <p className="text-[#c9a84c] text-xs font-semibold">Next Income Payout</p>
-              <p className="text-gray-500 text-[10px]">{activeProducts.length} product(s) · <span className="text-green-400 font-semibold">+{formatUGX(dailyTotal)}/day</span></p>
-            </div>
-          </div>
-          <div className="text-right">
-            {nextPayoutMs <= 0 ? (
-              <div className="px-3 py-1.5 rounded-xl text-xs font-bold text-black gold-gradient flex items-center gap-1">
-                <TrendingUp size={12} /> Crediting...
-              </div>
-            ) : (
-              <div className="px-3 py-1.5 rounded-xl" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(201,168,76,0.3)' }}>
-                <p className="text-[#c9a84c] font-black text-base tabular-nums">{formatCountdown(nextPayoutMs)}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Balance & Stats */}
-      <div className="mx-4 mt-3 rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {[
-            { label: 'My Balance', value: formatUGX(currentUser.balance), img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=120&h=80&fit=crop', path: '/records' },
-            { label: 'Cumulative Income', value: formatUGX(currentUser.cumulativeIncome), img: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=120&h=80&fit=crop', path: '/records' },
-            { label: 'Customer Service >', value: '', img: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=120&h=80&fit=crop', path: '/customer-service', isService: true },
-          ].map((item, i) => (
-            <button key={i} onClick={() => navigate(item.path)} className="rounded-xl overflow-hidden text-left" style={{ border: '1px solid #2a2a2a' }}>
-              <img src={item.img} alt="" className="w-full h-14 object-cover" />
-              {item.isService ? (
-                <div className="p-2 text-center" style={{ background: '#1a1a1a' }}>
-                  <p className="text-[#c9a84c] text-[10px] font-medium">{item.label}</p>
-                </div>
-              ) : (
-                <div className="p-2 text-center" style={{ background: '#1a1a1a' }}>
-                  <p className="text-white font-bold text-[10px]">{item.value}</p>
-                  <p className="text-[#c9a84c] text-[9px] mt-0.5">{item.label}</p>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-2">
-          {quickActions.map(action => {
-            const Icon = action.icon;
-            return (
-              <button key={action.label} onClick={() => navigate(action.path)}
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors"
-                style={{ background: '#1e1e1e' }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center gold-gradient">
-                  <Icon size={17} className="text-black" />
-                </div>
-                <span className="text-[9px] text-gray-400 font-medium">{action.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* BMW Games */}
-      <div className="px-4 mt-4">
-        <h3 className="font-bold text-white text-sm mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 gold-gradient rounded-full inline-block" />
-          BMW Games for All
-        </h3>
-        <div className="grid grid-cols-4 gap-2">
-          {GAME_IMAGES.map((img, i) => (
-            <div key={i} className="rounded-xl overflow-hidden aspect-square" style={{ border: '1px solid #2a2a2a' }}>
-              <img src={img} alt={`BMW game ${i + 1}`} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Product Center Preview */}
-      <div className="px-4 mt-4">
-        <div className="rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
-              <span className="w-1 h-4 gold-gradient rounded-full inline-block" />
-              Product Center
-            </h3>
-            <button onClick={() => navigate('/product')} className="flex items-center text-[#c9a84c] text-xs">
-              View All <ChevronRight size={12} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)' }}>
-              <p className="text-2xl font-black text-[#c9a84c]">{activeProducts.length}</p>
-              <p className="text-gray-500 text-xs">My Products</p>
-            </div>
-            <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)' }}>
-              <p className="text-base font-black text-[#c9a84c]">{formatUGX(currentUser.balance)}</p>
-              <p className="text-gray-500 text-xs">My Income</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {PRODUCTS.slice(0, 3).map(product => (
-              <div key={product.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#1e1e1e', border: '1px solid #2a2a2a' }}>
-                <div>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[9px] font-bold text-black px-1.5 py-0.5 rounded gold-gradient">VIP{product.vip}</span>
-                    <p className="text-white text-xs font-semibold">Legend One BMW</p>
-                  </div>
-                  <p className="text-[#c9a84c] font-bold text-sm">{formatUGX(product.price)}</p>
-                </div>
-                <button onClick={() => navigate('/product')}
-                  className="text-[10px] font-bold text-black px-3 py-1.5 rounded-xl gold-gradient">
-                  BUY NOW
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="h-4" />
-    </AppLayout>
+    </div>
   );
-}
+            }
