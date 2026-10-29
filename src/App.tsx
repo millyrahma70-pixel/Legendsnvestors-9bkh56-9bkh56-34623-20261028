@@ -14,6 +14,7 @@ import RegisterPage from '@/pages/RegisterPage';
 const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
 const ProductPage = lazy(() => import('@/pages/ProductPage'));
 const TeamPage = lazy(() => import('@/pages/TeamPage'));
+const MinePage = lazy(() => import('@/pages/MinePage'));
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 
 const queryClient = new QueryClient();
@@ -33,16 +34,16 @@ const App = () => (
           <Route path="/home" element={<CloudUserPage />} />
           <Route path="/cloud-user" element={<CloudUserPage />} />
           
-          {/* PRODUCTS - 13 VIPs with exact daily income from pictures */}
           <Route path="/product" element={<ProductPage />} />
           <Route path="/products" element={<ProductPage />} />
           
-          {/* TEAM - Invite your team page from your screenshots */}
           <Route path="/team" element={<TeamPage />} />
           <Route path="/invite" element={<TeamPage />} />
           
-          <Route path="/mine" element={<CloudUserPage />} />
-          <Route path="/account" element={<CloudUserPage />} />
+          {/* FIXED - MinePage IS your Account Page */}
+          <Route path="/mine" element={<MinePage />} />
+          <Route path="/account" element={<MinePage />} />
+          
           <Route path="/checkin" element={<CloudUserPage />} />
           <Route path="/tasks" element={<CloudUserPage />} />
           <Route path="/recharge" element={<CloudUserPage />} />
