@@ -10,8 +10,10 @@ import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
+
 const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
 const ProductPage = lazy(() => import('@/pages/ProductPage'));
+const TeamPage = lazy(() => import('@/pages/TeamPage'));
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 
 const queryClient = new QueryClient();
@@ -22,7 +24,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HashRouter>
-        <Suspense fallback={<div className="min-h-screen grid place-items-center bg-[#111] text-[#c9a84c]">Loading Legends...</div>}>
+        <Suspense fallback={<div className="min-h-screen grid place-items-center bg-[#0a0a0a] text-[#e6a800]">Loading Legends...</div>}>
         <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -31,11 +33,14 @@ const App = () => (
           <Route path="/home" element={<CloudUserPage />} />
           <Route path="/cloud-user" element={<CloudUserPage />} />
           
-          {/* PRODUCTS - BOTH singular and plural - FIXES YOUR 404 */}
+          {/* PRODUCTS - 13 VIPs with exact daily income from pictures */}
           <Route path="/product" element={<ProductPage />} />
           <Route path="/products" element={<ProductPage />} />
           
-          <Route path="/team" element={<CloudUserPage />} />
+          {/* TEAM - Invite your team page from your screenshots */}
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/invite" element={<TeamPage />} />
+          
           <Route path="/mine" element={<CloudUserPage />} />
           <Route path="/account" element={<CloudUserPage />} />
           <Route path="/checkin" element={<CloudUserPage />} />
@@ -45,7 +50,6 @@ const App = () => (
           <Route path="/bind-card" element={<CloudUserPage />} />
           <Route path="/records" element={<CloudUserPage />} />
           <Route path="/about" element={<CloudUserPage />} />
-          <Route path="/invite" element={<CloudUserPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
