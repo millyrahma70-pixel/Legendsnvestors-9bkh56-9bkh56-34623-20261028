@@ -71,6 +71,7 @@ export default function RegulationPage() {
           <a href={TELEGRAM} target="_blank" style={{display:'block',textAlign:'center',padding:'12px',background:'#1e1e1e',borderRadius:'12px',color:'#0088cc',textDecoration:'none',border:'1px solid #222'}}>Official Telegram</a>
         </div>
       </div>
+      
     </div>
   );
           }
