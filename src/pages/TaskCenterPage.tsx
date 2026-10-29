@@ -1,4 +1,3 @@
-import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, formatUGX } from '@/lib/storage';
 
@@ -21,18 +20,16 @@ export default function TaskCenterPage() {
     <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
       <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
         <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
+          <span className="text-gray-400">‹</span>
         </button>
         <h1 className="text-white font-bold text-lg">Task Center</h1>
       </div>
 
-      {/* Cumulative Rewards */}
       <div className="mx-4 mt-4 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #1a1400, #2a2000)', border: '1px solid rgba(201,168,76,0.3)' }}>
         <p className="text-gray-400 text-sm mb-1">Cumulative rewards</p>
         <p className="text-[#c9a84c] text-3xl font-black">{formatUGX(cumulativeRewards)}</p>
       </div>
 
-      {/* Task List */}
       <div className="px-4 mt-4 space-y-3">
         {TASKS.map(task => (
           <div key={task.level} className="rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
