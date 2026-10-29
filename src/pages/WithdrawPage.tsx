@@ -1,108 +1,101 @@
-import { useState } from 'react';
-import { ChevronLeft, ArrowDownToLine, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { getCurrentUser, createWithdrawOrder, formatUGX, getUserProducts } from '@/lib/storage';
-import type { UserProduct } from '@/types';
-import { MIN_WITHDRAWAL, WITHDRAWAL_FEE_RATE } from '@/constants/products';
+
+const MIN_WITHDRAW = 9000;
+const FEE_RATE = 16%;
+const WHATSAPP = '966557067827';
 
 export default function WithdrawPage() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const [amount, setAmount] = useState('');
+  const [user,setUser]=useState<any>(null);
+  const [amount,setAmount]=useState('');
 
-  if (!currentUser) { navigate('/'); return null; }
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ navigate('/login'); return; }
+    setUser(JSON.parse(s));
+  },[]);
 
-  const userProducts = getUserProducts(currentUser.id);
-  const hasActiveProduct = userProducts.some((p: UserProduct) => p.status === 'active');
+  if(!user) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#e6a800'}}>Loading...</div>;
 
-  const numAmount = parseInt(amount) || 0;
-  const fee = Math.floor(numAmount * WITHDRAWAL_FEE_RATE);
-  const received = numAmount - fee;
+  const num = parseInt(amount)||0;
+  const fee = Math.floor(num*FEE_RATE);
+  const received = num-fee;
 
-  const handleWithdraw = () => {
-    if (!hasActiveProduct) { toast.error('You need at least one active product to withdraw'); navigate('/product'); return; }
-    if (!currentUser.bankCard) { toast.error('Please bind your bank card first'); navigate('/bind-card'); return; }
-    if (numAmount < MIN_WITHDRAWAL) { toast.error(`Minimum withdrawal is ${formatUGX(MIN_WITHDRAWAL)}`); return; }
-    if (numAmount > currentUser.balance) { toast.error('Insufficient balance'); return; }
-    const result = createWithdrawOrder(currentUser.id, numAmount);
-    if (result.success) { toast.success('Withdrawal submitted successfully!'); navigate('/records'); }
-    else { toast.error(result.message); }
+  const handleWithdraw=()=>{
+    if(num < MIN_WITHDRAW){ alert(`Minimum ${MIN_WITHDRAW.toLocaleString()} UGX`); return; }
+    if(num > (user.balance||0)){ alert('Insufficient balance'); return; }
+    if(!user.bankCard && !user.phone){ alert('Please bind withdrawal account first'); navigate('/bind-card'); return; }
+
+    const recs=JSON.parse(localStorage.getItem('legend_records')||'[]');
+    recs.unshift({
+      id:Date.now().toString(),
+      userId:user.id,
+      type:'withdraw',
+      amount:num,
+      fee,
+      received,
+      status:'pending',
+      date:new Date().toISOString(),
+      account: user.bankCard || user.phone
+    });
+    localStorage.setItem('legend_records',JSON.stringify(recs));
+    
+    // Deduct balance pending
+    const users=JSON.parse(localStorage.getItem('legend_users')||'[]');
+    const idx=users.findIndex((u:any)=>u.id===user.id);
+    if(idx>=0){
+      users[idx].balance = (users[idx].balance||0)-num;
+      localStorage.setItem('legend_users',JSON.stringify(users));
+      localStorage.setItem('legend_session',JSON.stringify(users[idx]));
+    }
+    navigate('/records');
   };
 
   return (
-    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
-      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
-        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
-        </button>
-        <h1 className="text-white font-bold text-lg flex-1">Withdrawal</h1>
-        <button onClick={() => navigate('/withdraw-status')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-          style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', color: '#c9a84c' }}>
-          <Activity size={13} /> History
-        </button>
-      </div>
-
-      <div className="px-4 mt-4 space-y-4">
-        <div className="rounded-2xl p-5" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-          {/* Balance */}
-          <div className="mb-5">
-            <p className="text-gray-500 text-sm">Current balance</p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex flex-col gap-0.5">
-                <div className="w-5 h-0.5 gold-gradient rounded-full" />
-                <div className="w-5 h-0.5 gold-gradient rounded-full" />
-                <div className="w-5 h-0.5 gold-gradient rounded-full" />
-              </div>
-              <p className="text-3xl font-black text-white">{formatUGX(currentUser.balance)}</p>
-            </div>
-          </div>
-
-          {/* Bank Card Selector */}
-          <div className="mb-4">
-            <p className="text-gray-500 text-sm mb-2">Please select your bank card</p>
-            <button onClick={() => navigate('/bind-card')}
-              className="w-full flex items-center justify-between rounded-xl px-4 py-3 transition-colors"
-              style={{ background: '#1e1e1e', border: '1.5px solid #333' }}>
-              <div className="flex items-center gap-2 text-gray-500">
-                <ArrowDownToLine size={16} className="text-[#c9a84c]" />
-                {currentUser.bankCard ? (
-                  <span className="text-gray-300 font-medium text-sm">{currentUser.bankCard.bank} - {currentUser.bankCard.accountNumber}</span>
-                ) : (
-                  <span className="text-gray-600 text-sm">______ - ____________</span>
-                )}
-              </div>
-              <span className="text-gray-600">&gt;</span>
-            </button>
-          </div>
-
-          {/* Amount Input */}
-          <div className="mb-4">
-            <p className="text-gray-500 text-sm mb-2">Withdrawal amount</p>
-            <div className="flex items-center rounded-xl px-4 py-3.5" style={{ background: '#1e1e1e', border: '1.5px solid #333' }}>
-              <span className="text-[#c9a84c] font-bold mr-2">UGX</span>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Please enter withdrawal amount"
-                className="flex-1 outline-none text-sm text-white bg-transparent placeholder-gray-600" />
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-600">
-              <span>Received: <strong className="text-white">{formatUGX(received > 0 ? received : 0)}</strong></span>
-              <span>Fee: <strong className="text-white">{(WITHDRAWAL_FEE_RATE * 100).toFixed(0)}%</strong></span>
-            </div>
-          </div>
-
-          <button onClick={handleWithdraw} className="w-full gold-gradient py-4 rounded-xl font-bold text-black text-base">
-            Confirm
-          </button>
+    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',paddingBottom:'90px'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 16px',background:'#111',borderBottom:'1px solid #222'}}>
+          <button onClick={()=>navigate(-1)} style={{width:'32px',height:'32px',borderRadius:'10px',background:'#1e1e1e',border:'none',color:'#888'}}>‹</button>
+          <h1 style={{fontWeight:700,flex:1}}>Withdrawal</h1>
+          <button onClick={()=>navigate('/withdraw-status')} style={{padding:'6px 12px',borderRadius:'10px',background:'rgba(230,168,0,0.1)',border:'1px solid rgba(230,168,0,0.25)',color:'#e6a800',fontSize:'12px'}}>History</button>
         </div>
 
-        <div className="rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-          <div className="space-y-2 text-sm text-gray-500">
-            <p>1. The minimum withdrawal amount is <strong className="text-[#c9a84c]">{formatUGX(MIN_WITHDRAWAL)}</strong></p>
-            <p>2. The withdrawal fee is {(WITHDRAWAL_FEE_RATE * 100).toFixed(0)}% of the withdrawal amount.</p>
-            <p>3. You can make a withdrawal at any time; funds will be credited within 4 to 24 hours.</p>
-            <p>4. You must have at least one <strong className="text-[#c9a84c]">active product</strong> to enable the withdrawal function.</p>
+        <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:'14px'}}>
+          <div style={{background:'#151515',border:'1px solid #222',borderRadius:'20px',padding:'20px'}}>
+            <p style={{color:'#888',fontSize:'13px'}}>Current balance</p>
+            <p style={{fontSize:'28px',fontWeight:800,marginTop:'4px'}}>{(user.balance||0).toLocaleString()} UGX</p>
+
+            <p style={{color:'#888',fontSize:'13px',marginTop:'18px',marginBottom:'8px'}}>Select withdrawal account</p>
+            <button onClick={()=>navigate('/bind-card')} style={{width:'100%',padding:'14px',borderRadius:'12px',background:'#1e1e1e',border:'1px solid #333',color:user.bankCard?'white':'#666',textAlign:'left',display:'flex',justifyContent:'space-between'}}>
+              <span>{user.bankCard ? `${user.bankCard.bank||'MTN'} - ${user.bankCard.accountNumber||user.phone}` : '______ - Bind Account'}</span>
+              <span>›</span>
+            </button>
+
+            <p style={{color:'#888',fontSize:'13px',marginTop:'16px',marginBottom:'8px'}}>Withdrawal amount</p>
+            <div style={{display:'flex',alignItems:'center',padding:'14px',borderRadius:'12px',background:'#1e1e1e',border:'1px solid #333'}}>
+              <span style={{color:'#e6a800',fontWeight:700,marginRight:'8px'}}>UGX</span>
+              <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Enter amount" style={{flex:1,background:'none',border:'none',outline:'none',color:'white'}}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:'8px',fontSize:'12px',color:'#666'}}>
+              <span>Received: <b style={{color:'white'}}>{received>0?received.toLocaleString():0} UGX</b></span>
+              <span>Fee: <b style={{color:'white'}}>5%</b></span>
+            </div>
+
+            <button onClick={handleWithdraw} style={{width:'100%',marginTop:'18px',padding:'16px',borderRadius:'12px',background:'#e6a800',color:'black',fontWeight:800,border:'none',fontSize:'15px'}}>Confirm Withdrawal</button>
           </div>
+
+          <div style={{background:'#151515',border:'1px solid #222',borderRadius:'16px',padding:'16px'}}>
+            <p style={{color:'#888',fontSize:'12px',lineHeight:'1.6'}}>
+              1. Minimum withdrawal is <b style={{color:'#e6a800'}}>{MIN_WITHDRAW.toLocaleString()} UGX</b><br/>
+              2. Fee is 5% of withdrawal amount<br/>
+              3. Funds credited within 4-24 hours<br/>
+              4. Contact WhatsApp if delayed: +966557067827
+            </p>
+          </div>
+
+          <a href={`https://wa.me/${WHATSAPP}`} target="_blank" style={{display:'block',textAlign:'center',padding:'14px',background:'#25d366',borderRadius:'12px',color:'white',fontWeight:700,textDecoration:'none'}}>WhatsApp Support: +966557067827</a>
+          <a href="https://t.me/+-dWGeVqFYhllZWY0" target="_blank" style={{display:'block',textAlign:'center',padding:'12px',background:'#1e1e1e',borderRadius:'12px',color:'#0088cc',textDecoration:'none',border:'1px solid #222'}}>Official Telegram</a>
         </div>
       </div>
     </div>
