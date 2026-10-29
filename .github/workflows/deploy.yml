@@ -18,7 +18,11 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-      - run: npm run build
+      - name: Build with env
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v4
       - run: cp ./dist/index.html ./dist/404.html
       - uses: actions/upload-pages-artifact@v3
