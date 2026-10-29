@@ -2,11 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-const repoBase = "/Legendsnvestors-9bkh56-9bkh56-34623-20261028/";
-const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
-
 export default defineConfig({
-  base: isGitHubPages ? repoBase : "/",
+  base: "/",
   server: {
     host: "::",
     port: 8080,
