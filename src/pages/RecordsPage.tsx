@@ -1,175 +1,90 @@
-import { useState } from 'react';
-import { ChevronLeft, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, getTransactions, getRechargeOrders, formatUGX } from '@/lib/storage';
 
-type Tab = 'all' | 'recharge' | 'withdraw' | 'income' | 'bonus' | 'referral';
+const WHATSAPP = '966557067827';
+const TELEGRAM = 'https://t.me/+-dWGeVqFYhllZWY0';
+
+type Tab = 'all'|'recharge'|'withdraw'|'income';
 
 export default function RecordsPage() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const [tab, setTab] = useState<Tab>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [user,setUser]=useState<any>(null);
+  const [records,setRecords]=useState<any[]>([]);
+  const [tab,setTab]=useState<Tab>('all');
 
-  if (!currentUser) { navigate('/'); return null; }
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ navigate('/login'); return; }
+    const u=JSON.parse(s);
+    setUser(u);
+    const recs=JSON.parse(localStorage.getItem('legend_records')||'[]');
+    const my=recs.filter((r:any)=>r.userId===u.id).sort((a:any,b:any)=>new Date(b.date||b.createdAt).getTime()-new Date(a.date||a.createdAt).getTime());
+    setRecords(my);
+  },[]);
 
-  const transactions = getTransactions(currentUser.id);
+  if(!user) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#e6a800'}}>Loading...</div>;
 
-  const tabs: { key: Tab; label: string; color?: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'recharge', label: 'Recharge' },
-    { key: 'withdraw', label: 'Withdraw' },
-    { key: 'income', label: 'Income' },
-    { key: 'bonus', label: 'Bonus' },
-    { key: 'referral', label: 'Referral' },
-  ];
+  let filtered = records;
+  if(tab==='recharge') filtered=records.filter(r=>r.type==='recharge');
+  if(tab==='withdraw') filtered=records.filter(r=>r.type==='withdraw');
+  if(tab==='income') filtered=records.filter(r=>r.type==='income'||r.type==='checkin'||r.type==='bonus'||r.type==='referral');
 
-  let filtered = transactions;
-
-  // Filter by tab type
-  if (tab === 'recharge') filtered = filtered.filter(t => t.type === 'recharge' && t.amount > 0);
-  else if (tab === 'withdraw') filtered = filtered.filter(t => t.type === 'withdraw');
-  else if (tab === 'income') filtered = filtered.filter(t => t.type === 'income' || t.type === 'checkin');
-  else if (tab === 'bonus') filtered = filtered.filter(t => t.type === 'bonus');
-  else if (tab === 'referral') filtered = filtered.filter(t => t.type === 'referral');
-
-  // Filter by date range
-  if (dateFrom) filtered = filtered.filter(t => new Date(t.createdAt) >= new Date(dateFrom));
-  if (dateTo) {
-    const toDate = new Date(dateTo);
-    toDate.setDate(toDate.getDate() + 1);
-    filtered = filtered.filter(t => new Date(t.createdAt) < toDate);
-  }
-
-  const getAmountColor = (type: string, amount: number) => {
-    if (['income', 'bonus', 'checkin', 'referral'].includes(type)) return '#c9a84c';
-    if (amount < 0 || type === 'withdraw') return '#ef4444';
-    return '#60a5fa';
-  };
-
-  const getTypeIcon = (type: string) => {
-    if (type === 'recharge') return '📥';
-    if (type === 'withdraw') return '📤';
-    if (type === 'income') return '💰';
-    if (type === 'checkin') return '✅';
-    if (type === 'bonus') return '🎁';
-    if (type === 'referral') return '👥';
-    return '💸';
-  };
-
-  const getStatusStyle = (status: string) => {
-    if (status === 'completed') return { background: 'rgba(201,168,76,0.1)', color: '#c9a84c' };
-    if (status === 'pending') return { background: 'rgba(251,191,36,0.1)', color: '#fbbf24' };
-    return { background: 'rgba(239,68,68,0.1)', color: '#ef4444' };
-  };
-
-  const totalIn = filtered.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalOut = filtered.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalIn = filtered.filter(r=>r.amount>0||r.received>0).reduce((s,r)=>s+(r.amount||r.received||0),0);
 
   return (
-    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
-      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
-        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
-        </button>
-        <h1 className="text-white font-bold text-lg flex-1">Records</h1>
-        <button onClick={() => setShowFilters(!showFilters)}
-          className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-          style={{ background: showFilters ? 'linear-gradient(135deg, #c9a84c, #f0c040)' : '#1e1e1e' }}>
-          <Filter size={14} className={showFilters ? 'text-black' : 'text-gray-400'} />
-        </button>
-      </div>
-
-      {/* Filter Tabs - horizontal scroll */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto" style={{ borderBottom: '1px solid #1a1a1a' }}>
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-            style={tab === t.key
-              ? { background: 'linear-gradient(135deg, #c9a84c, #f0c040)', color: '#000' }
-              : { background: '#1a1a1a', color: '#666', border: '1px solid #222' }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Date Range Picker */}
-      {showFilters && (
-        <div className="px-4 py-3" style={{ background: '#111111', borderBottom: '1px solid #1a1a1a' }}>
-          <p className="text-gray-500 text-xs mb-2 font-medium">Filter by date range</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-gray-600 text-[10px] mb-1">From</p>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
-                style={{ background: '#1e1e1e', border: '1px solid #333' }} />
-            </div>
-            <div>
-              <p className="text-gray-600 text-[10px] mb-1">To</p>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
-                style={{ background: '#1e1e1e', border: '1px solid #333' }} />
-            </div>
-          </div>
-          {(dateFrom || dateTo) && (
-            <button onClick={() => { setDateFrom(''); setDateTo(''); }}
-              className="mt-2 text-xs text-[#c9a84c] underline">Clear dates</button>
-          )}
+    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',paddingBottom:'90px'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 16px',background:'#111',borderBottom:'1px solid #222'}}>
+          <button onClick={()=>navigate(-1)} style={{width:'32px',height:'32px',borderRadius:'10px',background:'#1e1e1e',border:'none',color:'#888'}}>‹</button>
+          <h1 style={{fontWeight:700,flex:1}}>Records</h1>
         </div>
-      )}
 
-      {/* Summary Stats */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 px-4 py-3" style={{ borderBottom: '1px solid #1a1a1a' }}>
-          <div className="rounded-xl p-2 text-center" style={{ background: '#151515' }}>
-            <p className="text-white font-black text-sm">{filtered.length}</p>
-            <p className="text-gray-600 text-[10px]">Records</p>
-          </div>
-          <div className="rounded-xl p-2 text-center" style={{ background: '#151515' }}>
-            <p className="text-[#c9a84c] font-black text-xs">+{formatUGX(totalIn)}</p>
-            <p className="text-gray-600 text-[10px]">In</p>
-          </div>
-          <div className="rounded-xl p-2 text-center" style={{ background: '#151515' }}>
-            <p className="text-red-400 font-black text-xs">-{formatUGX(totalOut)}</p>
-            <p className="text-gray-600 text-[10px]">Out</p>
-          </div>
+        <div style={{display:'flex',gap:'8px',padding:'12px 16px',overflowX:'auto',borderBottom:'1px solid #1a1a1a'}}>
+          {[
+            {k:'all',l:'All'},
+            {k:'recharge',l:'Recharge'},
+            {k:'withdraw',l:'Withdraw'},
+            {k:'income',l:'Income'},
+          ].map((t:any)=>(
+            <button key={t.k} onClick={()=>setTab(t.k)} style={{whiteSpace:'nowrap',padding:'8px 14px',borderRadius:'12px',fontSize:'12px',fontWeight:600,background:tab===t.k?'#e6a800':'#1a1a1a',color:tab===t.k?'black':'#666',border:'1px solid #222'}}>{t.l}</button>
+          ))}
         </div>
-      )}
 
-      <div className="px-4 mt-3 space-y-2 pb-6">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl p-10 text-center mt-4" style={{ background: '#151515' }}>
-            <p className="text-gray-600 text-sm">No records</p>
-            {(dateFrom || dateTo) && <p className="text-gray-700 text-xs mt-1">Try clearing the date filter</p>}
+        {filtered.length>0 && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',padding:'12px 16px'}}>
+            <div style={{background:'#151515',borderRadius:'12px',padding:'12px',textAlign:'center'}}><p style={{fontWeight:800}}>{filtered.length}</p><p style={{color:'#666',fontSize:'10px'}}>Records</p></div>
+            <div style={{background:'#151515',borderRadius:'12px',padding:'12px',textAlign:'center'}}><p style={{fontWeight:800,color:'#e6a800'}}>{totalIn.toLocaleString()} UGX</p><p style={{color:'#666',fontSize:'10px'}}>Total In</p></div>
           </div>
-        ) : (
-          filtered.map(tx => (
-            <div key={tx.id} className="rounded-2xl px-4 py-3.5" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-              <div className="flex justify-between items-start">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-sm mt-0.5"
-                    style={{ background: '#1e1e1e' }}>
-                    {getTypeIcon(tx.type)}
-                  </div>
-                  <div>
-                    <p className="text-gray-300 text-sm font-medium">{tx.description}</p>
-                    <p className="text-gray-600 text-xs mt-0.5">{new Date(tx.createdAt).toLocaleString()}</p>
-                  </div>
+        )}
+
+        <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:'8px'}}>
+          {filtered.length===0 ? (
+            <div style={{background:'#151515',borderRadius:'16px',padding:'32px',textAlign:'center'}}>
+              <p style={{color:'#666'}}>No records</p>
+            </div>
+          ) : filtered.map((tx:any)=>(
+            <div key={tx.id} style={{background:'#151515',border:'1px solid #222',borderRadius:'16px',padding:'14px',display:'flex',justifyContent:'space-between'}}>
+              <div style={{display:'flex',gap:'10px'}}>
+                <div style={{width:'32px',height:'32px',borderRadius:'10px',background:'#1e1e1e',display:'grid',placeItems:'center'}}>
+                  {tx.type==='recharge'?'📥':tx.type==='withdraw'?'📤':'💰'}
                 </div>
-                <div className="text-right flex-shrink-0 ml-2">
-                  <p className="font-bold text-sm" style={{ color: getAmountColor(tx.type, tx.amount) }}>
-                    {tx.amount >= 0 ? '+' : ''}{formatUGX(tx.amount)}
-                  </p>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={getStatusStyle(tx.status)}>
-                    {tx.status}
-                  </span>
+                <div>
+                  <p style={{fontSize:'13px',fontWeight:500}}>{tx.type} {tx.amount?`• ${tx.amount.toLocaleString()} UGX`:''}</p>
+                  <p style={{fontSize:'11px',color:'#666'}}>{new Date(tx.date||tx.createdAt).toLocaleString()}</p>
+                  <p style={{fontSize:'10px',marginTop:'4px'}}><span style={{padding:'2px 6px',borderRadius:'20px',background:tx.status==='completed'?'rgba(230,168,0,0.1)':tx.status==='pending'?'rgba(251,191,36,0.1)':'rgba(239,68,68,0.1)',color:tx.status==='completed'?'#e6a800':tx.status==='pending'?'#fbbf24':'#ef4444'}}>{tx.status||'pending'}</span></p>
                 </div>
               </div>
+              <div style={{textAlign:'right'}}>
+                <p style={{fontWeight:700,fontSize:'13px',color:tx.type==='withdraw'?'#ef4444':'#e6a800'}}>{tx.type==='withdraw'?'-':'+'}{(tx.received||tx.amount||0).toLocaleString()} UGX</p>
+              </div>
             </div>
-          ))
-        )}
+          ))}
+
+          <div style={{marginTop:'12px',display:'flex',flexDirection:'column',gap:'8px'}}>
+            <a href={`https://wa.me/${WHATSAPP}`} target="_blank" style={{display:'block',textAlign:'center',padding:'12px',background:'#1e1e1e',borderRadius:'12px',color:'#25d366',textDecoration:'none',border:'1px solid #222'}}>WhatsApp Support: +966557067827</a>
+            <a href={TELEGRAM} target="_blank" style={{display:'block',textAlign:'center',padding:'12px',background:'#1e1e1e',borderRadius:'12px',color:'#0088cc',textDecoration:'none',border:'1px solid #222'}}>Telegram: t.me/+-dWGeVqFYhllZWY0</a>
+          </div>
+        </div>
       </div>
     </div>
   );
