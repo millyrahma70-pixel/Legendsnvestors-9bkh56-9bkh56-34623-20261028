@@ -2,10 +2,19 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const PRODUCTS = [
-  {id:1, vip:1, name:'VIP 1 Legend One BMW', price:30000, dailyIncome:500, term:60, totalIncome:30000, img:'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=400'},
-  {id:2, vip:2, name:'VIP 2 Legend One BMW', price:42000, dailyIncome:840, term:60, totalIncome:50400, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400'},
-  {id:3, vip:3, name:'VIP 3 Legend One BMW', price:50000, dailyIncome:1250, term:60, totalIncome:75000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400'},
-  {id:4, vip:4, name:'VIP 4 Legend Pro BMW', price:100000, dailyIncome:3000, term:60, totalIncome:180000, img:'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400'},
+  {id:1, vip:1, name:'VIP 1 Legend One BMW', price:30000, dailyIncome:4500, term:60, totalIncome:270000, img:'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=400'},
+  {id:2, vip:2, name:'VIP 2 Legend One BMW', price:42000, dailyIncome:9000, term:60, totalIncome:540000, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400'},
+  {id:3, vip:3, name:'VIP 3 Legend One BMW', price:50000, dailyIncome:11000, term:60, totalIncome:660000, img:'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400'},
+  {id:4, vip:4, name:'VIP 4 Legend One BMW', price:68000, dailyIncome:15000, term:60, totalIncome:900000, img:'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=400'},
+  {id:5, vip:5, name:'VIP 5 Legend One BMW', price:80000, dailyIncome:19800, term:60, totalIncome:1188000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400'},
+  {id:6, vip:6, name:'VIP 6 Legend One BMW', price:100000, dailyIncome:21000, term:60, totalIncome:1260000, img:'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400'},
+  {id:7, vip:7, name:'VIP 7 Legend One BMW', price:150000, dailyIncome:32500, term:60, totalIncome:1950000, img:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400'},
+  {id:8, vip:8, name:'VIP 8 Legend One BMW', price:250000, dailyIncome:50000, term:60, totalIncome:3000000, img:'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=400'},
+  {id:9, vip:9, name:'VIP 9 Legend One BMW', price:300000, dailyIncome:75000, term:60, totalIncome:4500000, img:'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400'},
+  {id:10, vip:10, name:'VIP 10 Legend One BMW', price:550000, dailyIncome:121000, term:60, totalIncome:7260000, img:'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=400'},
+  {id:11, vip:11, name:'VIP 11 Legend One BMW', price:800000, dailyIncome:176000, term:60, totalIncome:10560000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400'},
+  {id:12, vip:12, name:'VIP 12 Legend One BMW', price:1000000, dailyIncome:200000, term:60, totalIncome:12000000, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400'},
+  {id:13, vip:13, name:'VIP 13 Legend One BMW', price:1500000, dailyIncome:300000, term:60, totalIncome:18000000, img:'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=400'},
 ];
 
 function formatUGX(n:number){ return `UGX ${n.toLocaleString()}`; }
@@ -52,19 +61,16 @@ export default function ProductPage(){
   return(
     <div style={{minHeight:'100vh',background:'#0f0f0f',color:'white',paddingBottom:'80px'}}>
       <div style={{maxWidth:'440px',margin:'0 auto'}}>
-        {/* Header */}
         <div style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
           <div style={{width:'4px',height:'22px',background:'#e6a800',borderRadius:'2px'}}></div>
           <div style={{fontWeight:800,fontSize:'20px'}}>Product Center</div>
         </div>
 
-        {/* Stats */}
         <div style={{margin:'0 16px 12px',background:'#151515',border:'1px solid rgba(230,168,0,0.2)',borderRadius:'16px',padding:'16px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
           <div><div style={{fontSize:'28px',fontWeight:900,color:'#e6a800'}}>{active.length}</div><div onClick={()=>setShowMy(!showMy)} style={{color:'#888',fontSize:'12px',cursor:'pointer'}}>My products {showMy?'▲':'▼'}</div></div>
           <div style={{textAlign:'right'}}><div style={{fontSize:'18px',fontWeight:800,color:'#e6a800'}}>{formatUGX(balance)}</div><Link to="/records" style={{color:'#888',fontSize:'12px',textDecoration:'none'}}>My income ›</Link></div>
         </div>
 
-        {/* My Products with live countdown */}
         {showMy && myProducts.length>0 && (
           <div style={{padding:'0 16px',marginBottom:'16px'}}>
             <div style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'10px'}}><span>🕒</span><div style={{fontWeight:700,fontSize:'14px'}}>My Products</div>{expired.length>0 && <span style={{background:'rgba(255,0,0,0.1)',color:'#ff4444',fontSize:'10px',padding:'2px 8px',borderRadius:'10px'}}>{expired.length} expired</span>}</div>
@@ -74,7 +80,6 @@ export default function ProductPage(){
               const d=Math.floor(ms/86400000); const h=Math.floor((ms%86400000)/3600000); const m=Math.floor((ms%3600000)/60000); const s=Math.floor((ms%60000)/1000);
               const def=PRODUCTS.find(p=>p.id===up.productId);
               const total=def? new Date(up.endDate).getTime()-new Date(up.purchaseDate).getTime():1;
-              const elapsed=Date.now()-new Date(up.purchaseDate).getTime();
               const pct=Math.max(0,Math.min(100,((total-ms)/total)*100));
               return(
                 <div key={up.id} style={{background:isExpired?'#151515':'linear-gradient(135deg,#1a1100,#201800)',border:isExpired?'1px solid #333':'1px solid rgba(230,168,0,0.4)',borderRadius:'16px',overflow:'hidden',marginBottom:'10px'}}>
@@ -97,8 +102,7 @@ export default function ProductPage(){
           </div>
         )}
 
-        {/* Available Products */}
-        <div style={{padding:'0 16px',marginBottom:'10px',display:'flex',gap:'8px',alignItems:'center'}}><span>🛍️</span><div style={{fontWeight:700,fontSize:'14px'}}>Available Products</div></div>
+        <div style={{padding:'0 16px',marginBottom:'10px',display:'flex',gap:'8px',alignItems:'center'}}><span>🛍️</span><div style={{fontWeight:700,fontSize:'14px'}}>Available Products ({PRODUCTS.length})</div></div>
 
         <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:'12px'}}>
           {PRODUCTS.map(p=>(
@@ -121,4 +125,4 @@ export default function ProductPage(){
       </div>
     </div>
   );
-}
+   }
