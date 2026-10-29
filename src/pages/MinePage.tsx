@@ -1,116 +1,96 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Info, Shield, ListOrdered, Headphones, CreditCard, Gift, LogOut, ChevronRight, CreditCard as RechargeIcon, ArrowDownToLine, Activity, TrendingUp, UserCircle } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import { getCurrentUser, setCurrentUser, formatUGX } from '@/lib/storage';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
-export default function MinePage() {
-  const navigate = useNavigate();
-  const [currentUser, setUser] = useState(getCurrentUser());
+function formatUGX(n:number){ return `UGX ${Number(n||0).toLocaleString()}`; }
 
-  if (!currentUser) { navigate('/'); return null; }
+export default function MinePage(){
+  const nav=useNavigate();
+  const [user,setUser]=useState<any>(null);
 
-  const handleSignOut = () => {
-    setCurrentUser(null);
-    navigate('/login');
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ nav('/login'); return; }
+    try{ setUser(JSON.parse(s)); }catch{ nav('/login'); }
+  },[]);
+
+  if(!user) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#e6a800'}}>Loading...</div>;
+
+  const handleSignOut=()=>{
+    localStorage.removeItem('legend_session');
+    nav('/login');
   };
 
-  const menuItems = [
-    { icon: UserCircle, label: 'Edit Profile', path: '/profile' },
-    { icon: Info, label: 'About Us', path: '/about' },
-    { icon: Shield, label: 'Regulation', path: '/regulation' },
-    { icon: ListOrdered, label: 'Records', path: '/records' },
-    { icon: Headphones, label: 'Customer Service', path: '/customer-service' },
-    { icon: CreditCard, label: 'Bind Bank Card', path: '/bind-card' },
-    { icon: TrendingUp, label: 'Recharge Status', path: '/recharge-status' },
-    { icon: Activity, label: 'Withdrawal Status', path: '/withdraw-status' },
-    { icon: Gift, label: 'Redeem Gift', path: '/redeem' },
+  const menuItems=[
+    { icon:'👤', label:'Profile & password', path:'/profile' },
+    { icon:'💳', label:'Bind payout account', path:'/bind-card' },
+    { icon:'🧾', label:'Transaction records', path:'/records' },
+    { icon:'💰', label:'Recharge status', path:'/recharge-status' },
+    { icon:'💸', label:'Withdrawal status', path:'/withdraw-status' },
+    { icon:'🎁', label:'Redeem gift code', path:'/redeem' },
+    { icon:'📅', label:'Daily check-in', path:'/checkin' },
+    { icon:'🎧', label:'Customer support', path:'/customer-service' },
+    { icon:'🛡️', label:'Platform rules', path:'/regulation' },
   ];
 
-  return (
-    <AppLayout>
-      {/* Profile Header */}
-      <div className="mx-4 mt-4 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #1a1400, #2a2000)', border: '1px solid rgba(201,168,76,0.3)' }}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(201,168,76,0.15)', border: '2px solid #c9a84c' }}>
-            <div className="flex flex-col gap-0.5">
-              <div className="w-4 h-0.5 bg-[#c9a84c] rounded-full" />
-              <div className="w-4 h-0.5 bg-[#c9a84c] rounded-full" />
-              <div className="w-4 h-0.5 bg-[#c9a84c] rounded-full" />
-            </div>
-          </div>
-          <div>
-            <p className="text-white font-bold">{currentUser.phone}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[10px] font-bold text-black px-2 py-0.5 rounded-full gold-gradient">Lv{currentUser.level}</span>
-              <span className="text-gray-500 text-xs">Referral: {currentUser.referralCode}</span>
-            </div>
-          </div>
+  return(
+    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto',paddingBottom:'90px'}}>
+        
+        {/* Top bar */}
+        <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{color:'#e6a800',fontWeight:800,fontSize:'18px'}}>Legend Investors</div>
+          <button onClick={handleSignOut} style={{background:'#1e1e1e',border:'1px solid #333',color:'white',padding:'7px 16px',borderRadius:'24px',fontSize:'12px'}}>Sign out</button>
         </div>
 
-        <div className="mb-3">
-          <p className="text-gray-500 text-xs mb-1">Balance</p>
-          <p className="text-[#c9a84c] text-3xl font-black">{formatUGX(currentUser.balance)}</p>
+        {/* Profile Header - EXACT from your screenshot */}
+        <div style={{margin:'0 16px',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'24px',padding:'20px'}}>
+          <div style={{color:'#e6a800',fontWeight:700,fontSize:'13px',marginBottom:'10px'}}>Verified Cloud account</div>
+          <div style={{fontSize:'26px',fontWeight:800,letterSpacing:'0.5px'}}>{user.phone||'+256746085840'}</div>
+          <div style={{color:'#888',fontSize:'12px',marginTop:'6px'}}>{user.email||'legendinvestors6@gmail.com'}</div>
+          <div style={{color:'#e6a800',fontSize:'34px',fontWeight:900,marginTop:'18px'}}>{formatUGX(user.balance||9000)}</div>
+          <div style={{color:'#888',fontSize:'12px',marginTop:'4px'}}>Referral: {user.referralCode||'4B86F10B5A'} · active</div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { icon: RechargeIcon, label: 'Recharge', path: '/recharge' },
-            { icon: ArrowDownToLine, label: 'Withdraw', path: '/withdraw' },
-            { icon: ListOrdered, label: 'Records', path: '/records' },
-          ].map(action => {
-            const Icon = action.icon;
-            return (
-              <button key={action.label} onClick={() => navigate(action.path)}
-                className="flex flex-col items-center gap-1.5 py-2 rounded-xl"
-                style={{ background: 'rgba(201,168,76,0.1)' }}>
-                <Icon size={18} className="text-[#c9a84c]" />
-                <span className="text-gray-400 text-[10px]">{action.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Task Center Banner */}
-      <button onClick={() => navigate('/tasks')} className="mx-4 mt-3 rounded-2xl overflow-hidden w-[calc(100%-2rem)]">
-        <div className="relative">
-          <img src="https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=480&h=100&fit=crop" alt="" className="w-full h-20 object-cover" />
-          <div className="absolute inset-0 flex items-center justify-between px-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-            <div>
-              <p className="text-white font-bold text-base">Task Center</p>
-              <p className="text-gray-300 text-xs">Complete tasks and get generous bonuses</p>
-            </div>
-            <span className="text-[#c9a84c] text-sm font-semibold">GO now -&gt;</span>
-          </div>
-        </div>
-      </button>
-
-      {/* Menu Items */}
-      <div className="mx-4 mt-3 rounded-2xl overflow-hidden" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-        {menuItems.map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <button key={item.label} onClick={() => navigate(item.path)}
-              className="w-full flex items-center gap-3 px-4 py-4 transition-colors hover:bg-white/5"
-              style={{ borderBottom: i < menuItems.length - 1 ? '1px solid #222' : 'none' }}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(201,168,76,0.1)' }}>
-                <Icon size={15} className="text-[#c9a84c]" />
+        {/* Task Center - EXACT */}
+        <Link to="/tasks" style={{textDecoration:'none'}}>
+          <div style={{margin:'12px 16px',borderRadius:'24px',overflow:'hidden',position:'relative',height:'88px',background:'#151515',border:'1px solid #2a2a2a'}}>
+            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&h=120&fit=crop" alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.4}}/>
+            <div style={{position:'relative',zIndex:2,padding:'20px',display:'flex',justifyContent:'space-between',alignItems:'center',height:'100%'}}>
+              <div>
+                <div style={{fontSize:'22px',fontWeight:800,color:'white'}}>Task Center</div>
+                <div style={{color:'#ccc',fontSize:'12px',marginTop:'4px'}}>Explore check-in and referral rewards.</div>
               </div>
-              <span className="flex-1 text-left text-gray-300 text-sm">{item.label}</span>
-              <ChevronRight size={14} className="text-gray-600" />
+              <div style={{color:'#e6a800',fontWeight:700,fontSize:'14px',display:'flex',alignItems:'center',gap:'4px'}}>Go now <span>→</span></div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Menu Items - EXACT from screenshot */}
+        <div style={{margin:'0 16px',background:'#1a1a1a',border:'1px solid #222',borderRadius:'20px',overflow:'hidden'}}>
+          {menuItems.map((item,i)=>(
+            <button key={item.label} onClick={()=>nav(item.path)} style={{width:'100%',display:'flex',alignItems:'center',gap:'12px',padding:'16px',background:'transparent',border:'none',borderBottom:i<menuItems.length-1?'1px solid #222':'none',textAlign:'left'}}>
+              <span style={{fontSize:'16px'}}>{item.icon}</span>
+              <span style={{flex:1,color:'white',fontSize:'14px',fontWeight:500}}>{item.label}</span>
+              <span style={{color:'#555'}}>›</span>
             </button>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Recharge / Withdraw quick buttons - from old design but hidden in screenshot? keep small */}
+        <div style={{margin:'12px 16px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px'}}>
+          <button onClick={()=>nav('/recharge')} style={{background:'#1a1a1a',border:'1px solid #222',padding:'12px',borderRadius:'14px',color:'#e6a800',fontWeight:600,fontSize:'12px'}}>Recharge</button>
+          <button onClick={()=>nav('/withdraw')} style={{background:'#1a1a1a',border:'1px solid #222',padding:'12px',borderRadius:'14px',color:'#e6a800',fontWeight:600,fontSize:'12px'}}>Withdraw</button>
+          <button onClick={()=>nav('/records')} style={{background:'#1a1a1a',border:'1px solid #222',padding:'12px',borderRadius:'14px',color:'#e6a800',fontWeight:600,fontSize:'12px'}}>Records</button>
+        </div>
       </div>
 
-      {/* Sign Out */}
-      <div className="mx-4 mt-3 mb-4">
-        <button onClick={handleSignOut} className="w-full py-4 rounded-2xl font-bold text-black gold-gradient flex items-center justify-center gap-2">
-          <LogOut size={16} />
-          Sign Out
-        </button>
+      {/* Bottom Nav */}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#111',borderTop:'1px solid #222',display:'flex',justifyContent:'space-around',padding:'10px 0',maxWidth:'440px',margin:'0 auto'}}>
+        <Link to="/home" style={{textAlign:'center',textDecoration:'none',flex:1}}><div style={{color:'#888'}}>⌂</div><div style={{fontSize:'11px',color:'#888'}}>Home</div></Link>
+        <Link to="/products" style={{textAlign:'center',textDecoration:'none',flex:1}}><div style={{color:'#888'}}>◫</div><div style={{fontSize:'11px',color:'#888'}}>Products</div></Link>
+        <Link to="/team" style={{textAlign:'center',textDecoration:'none',flex:1}}><div style={{color:'#888'}}>👥</div><div style={{fontSize:'11px',color:'#888'}}>Team</div></Link>
+        <Link to="/mine" style={{textAlign:'center',textDecoration:'none',flex:1}}><div style={{background:'#2a2410',borderRadius:'12px',margin:'0 6px',padding:'4px 0'}}><div style={{color:'#e6a800'}}>👤</div><div style={{fontSize:'11px',color:'#e6a800',fontWeight:700}}>Account</div></div></Link>
       </div>
-    </AppLayout>
+    </div>
   );
-}
+      }
