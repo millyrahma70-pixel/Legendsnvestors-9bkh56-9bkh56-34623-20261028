@@ -2,61 +2,48 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getSupabaseClient } from '@/lib/api';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
-  const navigate = useNavigate();
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setMsg('');
-    try {
-      const client = await getSupabaseClient();
-      const { data, error } = await (client as any).auth.signInWithPassword({ email, password });
-      if (error) {
-        setMsg(error.message);
-      } else {
-        setMsg('Login success! Going to home...');
-        setTimeout(() => navigate('/home'), 1000);
-      }
-    } catch (err: any) {
-      setMsg(err?.message || 'Backend offline, try later');
-    }
+export default function LoginPage(){
+  const [phone,setPhone]=useState('');const [pass,setPass]=useState('');const [show,setShow]=useState(false);const [msg,setMsg]=useState('');const [loading,setLoading]=useState(false);const nav=useNavigate();
+  async function login(e:any){
+    e.preventDefault(); if(!phone.trim()) return setMsg('Enter phone number'); if(!pass.trim()) return setMsg('Enter password');
+    setLoading(true);setMsg('');
+    try{
+      const c=await getSupabaseClient();
+      const {error,data}=await (c as any).auth.signInWithPassword({email:`${phone}@legends.local`,password:pass});
+      if(error) setMsg(error.message); else if(data?.session) { setMsg('Welcome back!'); setTimeout(()=>nav('/home'),800); } else setMsg('Check credentials');
+    }catch(err:any){ setMsg('Login failed, try again'); }
     setLoading(false);
   }
-
-  return (
-    <div className="min-h-screen bg-[#0f0f0f] text-[#e8e8e8] flex flex-col items-center justify-center p-6">
-      <h1 className="text-3xl font-bold text-[#c9a84c] mb-2">LEGENDS INVESTORS</h1>
-      <p className="text-sm text-gray-400 mb-8">Welcome to Legend</p>
-      
-      <form onSubmit={handleLogin} className="w-full max-w-sm bg-[#1a1a1a] border border-[#c9a84c]/30 rounded-2xl p-6 space-y-4">
-        <div>
-          <label className="text-sm text-gray-400">Email / Phone</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"
-            className="mt-1 w-full h-11 rounded-xl bg-[#0f0f0f] border border-[#333] px-4 text-white outline-none focus:border-[#c9a84c]" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400">Password</label>
-          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
-            className="mt-1 w-full h-11 rounded-xl bg-[#0f0f0f] border border-[#333] px-4 text-white outline-none focus:border-[#c9a84c]" />
-        </div>
+  const wrap={background:'#222',borderRadius:'16px',display:'flex',alignItems:'center',padding:'0 14px',border:'1px solid #333',marginBottom:'16px'} as any;
+  const input={flex:1,background:'transparent',border:'none',height:'52px',color:'white',outline:'none',paddingLeft:'10px',fontSize:'15px'} as any;
+  return(
+    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',padding:'16px'}}>
+      <div style={{maxWidth:'420px',margin:'0 auto',textAlign:'center'}}>
+        <div style={{fontSize:'54px',fontWeight:900,marginTop:'10px'}}>LEGEND</div>
+        <div style={{color:'#e6b800',fontSize:'20px',fontWeight:600,marginTop:'-4px'}}>Investors Platform</div>
+        <div style={{color:'#e6b800',letterSpacing:'3px',marginTop:'20px',fontSize:'16px'}}>WELCOME BACK</div>
         
-        {msg && <div className="text-sm text-[#c9a84c] bg-[#c9a84c]/10 p-3 rounded-xl">{msg}</div>}
-        
-        <button disabled={loading} type="submit"
-          className="w-full h-12 rounded-xl bg-[#c9a84c] text-black font-bold hover:opacity-90 disabled:opacity-50">
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-
-        <div className="flex justify-between text-sm pt-2">
-          <Link to="/register" className="text-[#c9a84c] hover:underline">Create account</Link>
-          <Link to="/" className="text-gray-400 hover:underline">← Home</Link>
+        <div style={{background:'#141414',border:'1px solid #222',borderRadius:'24px',padding:'20px',marginTop:'28px',textAlign:'left'}}>
+          <div style={{fontSize:'28px',fontWeight:800}}>Sign In</div>
+          <div style={{color:'#e6b800',fontSize:'14px',marginBottom:'18px'}}>Step 1 of 1 · Welcome back</div>
+          
+          <form onSubmit={login}>
+            <label style={{fontSize:'14px',color:'#999'}}>Phone Number</label>
+            <div style={wrap}><span>📞</span><input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="e.g. 0751234567" style={input}/></div>
+            
+            <label style={{fontSize:'14px',color:'#999'}}>Password</label>
+            <div style={wrap}><span>🔒</span><input type={show?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)} placeholder="Your password" style={input}/><span onClick={()=>setShow(!show)} style={{cursor:'pointer'}}>👁️</span></div>
+            
+            {msg && <div style={{background:'#2a2410',color:'#ffcc00',padding:'12px',borderRadius:'12px',fontSize:'13px',marginBottom:'14px',textAlign:'center'}}>{msg}</div>}
+            
+            <button disabled={loading} style={{width:'100%',height:'56px',background:'#ffcc00',color:'black',fontWeight:900,fontSize:'17px',borderRadius:'16px',border:'none',opacity:loading?0.6:1}}>{loading?'Signing in...':'Sign In'}</button>
+            
+            <div style={{textAlign:'center',marginTop:'16px',fontSize:'14px',color:'#aaa'}}>Don't have account? <Link to="/register" style={{color:'#ffcc00',fontWeight:700,textDecoration:'none'}}>Create Account</Link></div>
+            <div style={{textAlign:'center',marginTop:'10px'}}><Link to="/" style={{color:'#666',fontSize:'13px',textDecoration:'none'}}>← Home</Link></div>
+          </form>
         </div>
-      </form>
+        <div style={{textAlign:'center',marginTop:'18px',color:'#666',fontSize:'14px'}}>🎧 Need help? Contact support</div>
+      </div>
     </div>
   );
-}
+            }
