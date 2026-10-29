@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const MIN_WITHDRAW = 9000;
-const FEE_RATE = 16%;
+const FEE_RATE = 0.16;
 const WHATSAPP = '966557067827';
 
 export default function WithdrawPage() {
