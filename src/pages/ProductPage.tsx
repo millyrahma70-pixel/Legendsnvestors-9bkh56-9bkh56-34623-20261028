@@ -1,300 +1,124 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Clock, CheckCircle, XCircle, Timer } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import { getCurrentUser, getUserProducts, purchaseProduct, formatUGX } from '@/lib/storage';
-import { PRODUCTS } from '@/constants/products';
-import { toast } from 'sonner';
-import type { UserProduct } from '@/types';
+import { Link, useNavigate } from 'react-router-dom';
 
-const BMW_IMAGES = [
-  'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=120&h=120&fit=crop',
-  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=120&h=120&fit=crop',
-  'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=120&h=120&fit=crop',
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=120&h=120&fit=crop',
+const PRODUCTS = [
+  {id:1, vip:1, name:'VIP 1 Legend One BMW', price:30000, dailyIncome:500, term:60, totalIncome:30000, img:'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=400'},
+  {id:2, vip:2, name:'VIP 2 Legend One BMW', price:42000, dailyIncome:840, term:60, totalIncome:50400, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400'},
+  {id:3, vip:3, name:'VIP 3 Legend One BMW', price:50000, dailyIncome:1250, term:60, totalIncome:75000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400'},
+  {id:4, vip:4, name:'VIP 4 Legend Pro BMW', price:100000, dailyIncome:3000, term:60, totalIncome:180000, img:'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400'},
 ];
 
-function getRemainingMs(endDate: string): number {
-  return Math.max(0, new Date(endDate).getTime() - Date.now());
-}
+function formatUGX(n:number){ return `UGX ${n.toLocaleString()}`; }
+function getRemainingMs(end:string){ return Math.max(0,new Date(end).getTime()-Date.now()); }
 
-function formatRemaining(ms: number): string {
-  if (ms <= 0) return 'Expired';
-  const totalSec = Math.floor(ms / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  if (days > 0) return `${days}d ${hours}h remaining`;
-  if (hours > 0) return `${hours}h ${mins}m remaining`;
-  return `${mins}m remaining`;
-}
+export default function ProductPage(){
+  const nav=useNavigate();
+  const [balance,setBalance]=useState(9000);
+  const [myProducts,setMyProducts]=useState<any[]>([]);
+  const [buying,setBuying]=useState<number|null>(null);
+  const [showMy,setShowMy]=useState(true);
+  const [tick,setTick]=useState(0);
 
-function getRemainingPercent(purchaseDate: string, endDate: string): number {
-  const total = new Date(endDate).getTime() - new Date(purchaseDate).getTime();
-  const elapsed = Date.now() - new Date(purchaseDate).getTime();
-  return Math.max(0, Math.min(100, ((total - elapsed) / total) * 100));
-}
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ nav('/login'); return; }
+    setBalance(Number(localStorage.getItem('legend_balance')||'9000'));
+    setMyProducts(JSON.parse(localStorage.getItem('legend_products')||'[]'));
+    const iv=setInterval(()=>setTick(t=>t+1),1000);
+    return ()=>clearInterval(iv);
+  },[]);
 
-// Active product card with live countdown
-function ActiveProductCard({ userProduct, productDef }: { userProduct: UserProduct; productDef: typeof PRODUCTS[0] }) {
-  const [remainingMs, setRemainingMs] = useState(() => getRemainingMs(userProduct.endDate));
-  const [expired, setExpired] = useState(remainingMs <= 0);
-
-  useEffect(() => {
-    if (expired) return;
-    const interval = setInterval(() => {
-      const ms = getRemainingMs(userProduct.endDate);
-      setRemainingMs(ms);
-      if (ms <= 0) {
-        setExpired(true);
-        clearInterval(interval);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [userProduct.endDate, expired]);
-
-  const percent = getRemainingPercent(userProduct.purchaseDate, userProduct.endDate);
-  const totalSec = Math.floor(remainingMs / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  const secs = totalSec % 60;
-
-  return (
-    <div className="rounded-2xl overflow-hidden mb-3" style={{
-      background: expired ? '#151515' : 'linear-gradient(135deg, #1a1100, #201800)',
-      border: expired ? '1px solid #333' : '1px solid rgba(201,168,76,0.4)',
-    }}>
-      <div className="flex gap-3 p-4">
-        <div className="relative flex-shrink-0">
-          <img
-            src={BMW_IMAGES[productDef.vip % BMW_IMAGES.length]}
-            alt={productDef.name}
-            className="w-20 h-20 rounded-xl object-cover"
-            style={{ border: '1px solid #2a2a2a', filter: expired ? 'grayscale(1) opacity(0.5)' : 'none' }}
-          />
-          <div className="absolute top-1 left-1 text-[9px] font-black text-black px-1.5 py-0.5 rounded-full gold-gradient">
-            VIP{productDef.vip}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-white font-bold text-sm">{productDef.name}</h3>
-            {expired ? (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-red-400 px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                <XCircle size={10} /> Expired
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-green-400 px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <CheckCircle size={10} /> Active
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-0.5 mb-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Daily income:</span>
-              <span className="text-[#c9a84c] font-semibold">{formatUGX(productDef.dailyIncome)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Purchase:</span>
-              <span className="text-gray-400">{new Date(userProduct.purchaseDate).toLocaleDateString()}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Expires:</span>
-              <span className="text-gray-400">{new Date(userProduct.endDate).toLocaleDateString()}</span>
-            </div>
-          </div>
-
-          {/* Countdown */}
-          {!expired ? (
-            <div className="rounded-xl p-2" style={{ background: 'rgba(0,0,0,0.4)' }}>
-              <div className="flex items-center gap-1 mb-1">
-                <Timer size={10} className="text-[#c9a84c]" />
-                <p className="text-[10px] text-gray-500">Time remaining</p>
-              </div>
-              <div className="flex gap-1">
-                {[
-                  { val: days, unit: 'd' },
-                  { val: hours, unit: 'h' },
-                  { val: mins, unit: 'm' },
-                  { val: secs, unit: 's' },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-end gap-0.5">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm tabular-nums"
-                      style={{ background: 'rgba(201,168,76,0.15)', color: '#c9a84c', border: '1px solid rgba(201,168,76,0.3)' }}>
-                      {String(item.val).padStart(2, '0')}
-                    </div>
-                    <span className="text-gray-600 text-[9px] mb-0.5">{item.unit}</span>
-                    {i < 3 && <span className="text-[#c9a84c] font-bold text-xs mb-0.5 mx-0.5">:</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl p-2 text-center" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
-              <p className="text-red-400 text-xs font-semibold">Term ended — no more daily income</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      {!expired && (
-        <div className="px-4 pb-3">
-          <div className="flex justify-between text-[10px] text-gray-600 mb-1">
-            <span>Progress</span>
-            <span>{(100 - percent).toFixed(1)}% elapsed</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#1e1e1e' }}>
-            <div className="h-full rounded-full gold-gradient transition-all" style={{ width: `${100 - percent}%` }} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ProductPage() {
-  const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
-  const [buying, setBuying] = useState<number | null>(null);
-  const [showMyProducts, setShowMyProducts] = useState(false);
-  const [tick, setTick] = useState(0);
-
-  // Tick to keep userProducts fresh
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!currentUser) { navigate('/'); return null; }
-
-  const userProductsRaw = getUserProducts(currentUser.id);
-  // Auto-check expiry
-  const userProducts = userProductsRaw.map(up => ({
-    ...up,
-    status: getRemainingMs(up.endDate) <= 0 ? 'expired' as const : up.status,
-  }));
-  const activeProducts = userProducts.filter(p => p.status === 'active');
-  const expiredProducts = userProducts.filter(p => p.status === 'expired');
-
-  const handleBuy = (productId: number, price: number, dailyIncome: number, term: number, vip: number) => {
-    if (currentUser.balance < price) {
-      toast.error('Insufficient balance. Please recharge first.');
-      navigate('/recharge');
-      return;
-    }
-    setBuying(productId);
-    setTimeout(() => {
-      const result = purchaseProduct(currentUser.id, productId, price, dailyIncome, term);
-      if (result.success) {
-        toast.success(`VIP ${vip} purchased! Daily income: +${formatUGX(dailyIncome)}`);
-        setCurrentUser(getCurrentUser());
-      } else {
-        toast.error(result.message);
-      }
+  function buy(p:any){
+    if(balance < p.price){ alert('Insufficient balance. Recharge first.'); nav('/recharge'); return; }
+    setBuying(p.id);
+    setTimeout(()=>{
+      const newBal=balance-p.price;
+      setBalance(newBal);
+      localStorage.setItem('legend_balance',String(newBal));
+      const end=new Date(); end.setDate(end.getDate()+p.term);
+      const up={id:Date.now(), productId:p.id, purchaseDate:new Date().toISOString(), endDate:end.toISOString(), status:'active', vip:p.vip, name:p.name, price:p.price, dailyIncome:p.dailyIncome};
+      const arr=[...myProducts, up];
+      setMyProducts(arr);
+      localStorage.setItem('legend_products', JSON.stringify(arr));
+      localStorage.setItem('legend_next_payout', String(Date.now()+86400000));
       setBuying(null);
-    }, 600);
-  };
+      alert(`VIP ${p.vip} purchased! Daily income +${formatUGX(p.dailyIncome)}`);
+    },600);
+  }
 
-  return (
-    <AppLayout>
-      {/* Header */}
-      <div className="px-4 pt-4 pb-2">
-        <h1 className="text-white text-xl font-black flex items-center gap-2">
-          <span className="w-1 h-6 gold-gradient rounded-full inline-block" />
-          Product Center
-        </h1>
-      </div>
+  const active=myProducts.filter((p:any)=>getRemainingMs(p.endDate)>0);
+  const expired=myProducts.filter((p:any)=>getRemainingMs(p.endDate)<=0);
 
-      {/* Stats */}
-      <div className="mx-4 mb-3 rounded-2xl p-4 grid grid-cols-2 gap-3" style={{ background: '#151515', border: '1px solid rgba(201,168,76,0.2)' }}>
-        <div>
-          <p className="text-3xl font-black text-[#c9a84c]">{activeProducts.length}</p>
-          <button onClick={() => setShowMyProducts(!showMyProducts)} className="text-gray-500 text-xs flex items-center gap-1">
-            My products {showMyProducts ? '▲' : '▼'}
-          </button>
+  return(
+    <div style={{minHeight:'100vh',background:'#0f0f0f',color:'white',paddingBottom:'80px'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto'}}>
+        {/* Header */}
+        <div style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
+          <div style={{width:'4px',height:'22px',background:'#e6a800',borderRadius:'2px'}}></div>
+          <div style={{fontWeight:800,fontSize:'20px'}}>Product Center</div>
         </div>
-        <div className="text-right">
-          <p className="text-xl font-black text-[#c9a84c]">{formatUGX(currentUser.balance)}</p>
-          <button onClick={() => navigate('/records')} className="text-gray-500 text-xs">My income &gt;</button>
-        </div>
-      </div>
 
-      {/* My Active Products */}
-      {showMyProducts && userProducts.length > 0 && (
-        <div className="px-4 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock size={14} className="text-[#c9a84c]" />
-            <h3 className="text-white font-bold text-sm">My Products</h3>
-            {expiredProducts.length > 0 && (
-              <span className="text-[10px] text-red-400 px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)' }}>
-                {expiredProducts.length} expired
-              </span>
-            )}
+        {/* Stats */}
+        <div style={{margin:'0 16px 12px',background:'#151515',border:'1px solid rgba(230,168,0,0.2)',borderRadius:'16px',padding:'16px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+          <div><div style={{fontSize:'28px',fontWeight:900,color:'#e6a800'}}>{active.length}</div><div onClick={()=>setShowMy(!showMy)} style={{color:'#888',fontSize:'12px',cursor:'pointer'}}>My products {showMy?'▲':'▼'}</div></div>
+          <div style={{textAlign:'right'}}><div style={{fontSize:'18px',fontWeight:800,color:'#e6a800'}}>{formatUGX(balance)}</div><Link to="/records" style={{color:'#888',fontSize:'12px',textDecoration:'none'}}>My income ›</Link></div>
+        </div>
+
+        {/* My Products with live countdown */}
+        {showMy && myProducts.length>0 && (
+          <div style={{padding:'0 16px',marginBottom:'16px'}}>
+            <div style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'10px'}}><span>🕒</span><div style={{fontWeight:700,fontSize:'14px'}}>My Products</div>{expired.length>0 && <span style={{background:'rgba(255,0,0,0.1)',color:'#ff4444',fontSize:'10px',padding:'2px 8px',borderRadius:'10px'}}>{expired.length} expired</span>}</div>
+            {myProducts.map((up:any)=>{
+              const ms=getRemainingMs(up.endDate);
+              const isExpired=ms<=0;
+              const d=Math.floor(ms/86400000); const h=Math.floor((ms%86400000)/3600000); const m=Math.floor((ms%3600000)/60000); const s=Math.floor((ms%60000)/1000);
+              const def=PRODUCTS.find(p=>p.id===up.productId);
+              const total=def? new Date(up.endDate).getTime()-new Date(up.purchaseDate).getTime():1;
+              const elapsed=Date.now()-new Date(up.purchaseDate).getTime();
+              const pct=Math.max(0,Math.min(100,((total-ms)/total)*100));
+              return(
+                <div key={up.id} style={{background:isExpired?'#151515':'linear-gradient(135deg,#1a1100,#201800)',border:isExpired?'1px solid #333':'1px solid rgba(230,168,0,0.4)',borderRadius:'16px',overflow:'hidden',marginBottom:'10px'}}>
+                  <div style={{display:'flex',gap:'12px',padding:'14px'}}>
+                    <div style={{position:'relative'}}><img src={def?.img} style={{width:'70px',height:'70px',borderRadius:'12px',objectFit:'cover',filter:isExpired?'grayscale(1)':''}}/><div style={{position:'absolute',top:'2px',left:'2px',background:'#e6a800',color:'black',fontSize:'8px',fontWeight:900,padding:'2px 6px',borderRadius:'10px'}}>VIP{up.vip}</div></div>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',justifyContent:'space-between'}}><div style={{fontWeight:700,fontSize:'13px'}}>{up.name}</div><div style={{fontSize:'10px',padding:'2px 8px',borderRadius:'10px',background:isExpired?'rgba(255,0,0,0.1)':'rgba(0,255,0,0.1)',color:isExpired?'#ff4444':'#4ade80'}}>{isExpired?'Expired':'Active'}</div></div>
+                      <div style={{fontSize:'11px',color:'#888',marginTop:'6px'}}><div style={{display:'flex',justifyContent:'space-between'}}><span>Daily:</span><span style={{color:'#e6a800'}}>{formatUGX(up.dailyIncome)}</span></div><div style={{display:'flex',justifyContent:'space-between'}}><span>Expires:</span><span>{new Date(up.endDate).toLocaleDateString()}</span></div></div>
+                      {!isExpired ? (
+                        <div style={{marginTop:'8px',background:'rgba(0,0,0,0.4)',borderRadius:'10px',padding:'6px',display:'flex',gap:'4px'}}>
+                          {[{v:d,u:'d'},{v:h,u:'h'},{v:m,u:'m'},{v:s,u:'s'}].map((it,i)=><div key={i} style={{display:'flex',gap:'2px',alignItems:'flex-end'}}><div style={{width:'24px',height:'24px',background:'rgba(230,168,0,0.15)',border:'1px solid rgba(230,168,0,0.3)',borderRadius:'6px',display:'grid',placeItems:'center',color:'#e6a800',fontWeight:800,fontSize:'12px'}}>{String(it.v).padStart(2,'0')}</div><span style={{fontSize:'8px',color:'#666'}}>{it.u}</span>{i<3 && <span style={{color:'#e6a800',fontSize:'10px',margin:'0 1px'}}>:</span>}</div>)}
+                        </div>
+                      ) : <div style={{marginTop:'8px',background:'rgba(255,0,0,0.06)',border:'1px solid rgba(255,0,0,0.15)',borderRadius:'10px',padding:'6px',textAlign:'center',color:'#ff4444',fontSize:'11px'}}>Term ended — no more daily income</div>}
+                    </div>
+                  </div>
+                  {!isExpired && <div style={{padding:'0 14px 10px'}}><div style={{height:'4px',background:'#1e1e1e',borderRadius:'4px',overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:'#e6a800'}}></div></div></div>}
+                </div>
+              );
+            })}
           </div>
-          {userProducts.map(up => {
-            const def = PRODUCTS.find(p => p.id === up.productId);
-            if (!def) return null;
-            return <ActiveProductCard key={up.id} userProduct={up} productDef={def} />;
-          })}
-        </div>
-      )}
+        )}
 
-      {/* Available Products */}
-      <div className="px-4">
-        <div className="flex items-center gap-2 mb-3">
-          <ShoppingBag size={14} className="text-[#c9a84c]" />
-          <h3 className="text-white font-bold text-sm">Available Products</h3>
-        </div>
-      </div>
+        {/* Available Products */}
+        <div style={{padding:'0 16px',marginBottom:'10px',display:'flex',gap:'8px',alignItems:'center'}}><span>🛍️</span><div style={{fontWeight:700,fontSize:'14px'}}>Available Products</div></div>
 
-      <div className="px-4 space-y-3 pb-4">
-        {PRODUCTS.map((product, i) => (
-          <div key={product.id} className="rounded-2xl overflow-hidden" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-            <div className="flex gap-3 p-4">
-              <div className="relative flex-shrink-0">
-                <img
-                  src={BMW_IMAGES[i % BMW_IMAGES.length]}
-                  alt={product.name}
-                  className="w-24 h-24 rounded-xl object-cover"
-                  style={{ border: '1px solid #2a2a2a' }}
-                />
-                <div className="absolute top-1 left-1 text-[9px] font-black text-black px-1.5 py-0.5 rounded-full gold-gradient">
-                  VIP{product.vip}
-                </div>
+        <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:'12px'}}>
+          {PRODUCTS.map(p=>(
+            <div key={p.id} style={{background:'#151515',border:'1px solid #2a2a2a',borderRadius:'18px',overflow:'hidden'}}>
+              <div style={{display:'flex',gap:'12px',padding:'14px'}}>
+                <div style={{position:'relative'}}><img src={p.img} style={{width:'90px',height:'90px',borderRadius:'12px',objectFit:'cover'}}/><div style={{position:'absolute',top:'2px',left:'2px',background:'#e6a800',color:'black',fontSize:'9px',fontWeight:900,padding:'2px 6px',borderRadius:'10px'}}>VIP{p.vip}</div></div>
+                <div style={{flex:1}}><div style={{fontWeight:700,fontSize:'14px'}}>{p.name}</div><div style={{color:'#e6a800',fontWeight:900,fontSize:'18px',marginTop:'4px'}}>{formatUGX(p.price)}</div><div style={{marginTop:'6px',fontSize:'11px',color:'#888'}}><div style={{display:'flex',justifyContent:'space-between'}}><span>Term:</span><span style={{color:'white'}}>{p.term}-day</span></div><div style={{display:'flex',justifyContent:'space-between'}}><span>Daily:</span><span style={{color:'#e6a800'}}>{formatUGX(p.dailyIncome)}</span></div><div style={{display:'flex',justifyContent:'space-between'}}><span>Total:</span><span style={{color:'white'}}>{formatUGX(p.totalIncome)}</span></div></div></div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-white font-bold text-sm mb-2">{product.name}</h3>
-                <p className="text-[#c9a84c] font-black text-lg">{formatUGX(product.price)}</p>
-                <div className="mt-1 space-y-0.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Term:</span>
-                    <span className="text-white font-medium">{product.term}-day</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Daily income:</span>
-                    <span className="text-[#c9a84c] font-semibold">{formatUGX(product.dailyIncome)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Total income:</span>
-                    <span className="text-white font-medium">{formatUGX(product.totalIncome)}</span>
-                  </div>
-                </div>
-              </div>
+              <button onClick={()=>buy(p)} disabled={buying===p.id} style={{width:'100%',padding:'14px',background:'#e6a800',color:'black',fontWeight:800,border:'none',fontSize:'14px',opacity:buying===p.id?0.6:1}}>🛍️ {buying===p.id?'Processing...':'BUY NOW'}</button>
             </div>
-            <button
-              onClick={() => handleBuy(product.id, product.price, product.dailyIncome, product.term, product.vip)}
-              disabled={buying === product.id}
-              className="w-full py-3.5 font-bold text-black text-sm gold-gradient disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              <ShoppingBag size={16} />
-              {buying === product.id ? 'Processing...' : 'BUY NOW'}
-            </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </AppLayout>
+
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#1a1a1a',borderTop:'1px solid #222',display:'flex',justifyContent:'space-around',padding:'8px 0 10px'}}>
+        <Link to="/home" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>🏠</div><div style={{fontSize:'11px',color:'#888'}}>Home</div></Link>
+        <Link to="/products" style={{textAlign:'center',textDecoration:'none',flex:1,background:'#2a2410',borderRadius:'14px',margin:'0 4px'}}><div style={{color:'#e6a800'}}>📦</div><div style={{fontSize:'11px',color:'#e6a800',fontWeight:700}}>Products</div></Link>
+        <Link to="/team" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>👥</div><div style={{fontSize:'11px',color:'#888'}}>Team</div></Link>
+        <Link to="/account" style={{textAlign:'center',textDecoration:'none',flex:1}}><div>👤</div><div style={{fontSize:'11px',color:'#888'}}>Account</div></Link>
+      </div>
+    </div>
   );
 }
