@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, Gift, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { getCurrentUser, redeemGiftCode, formatUGX } from '@/lib/storage';
 import { TELEGRAM_LINK } from '@/constants/products';
 
@@ -14,15 +12,15 @@ export default function RedeemGiftPage() {
   if (!currentUser) { navigate('/'); return null; }
 
   const handleRedeem = () => {
-    if (!code.trim()) { toast.error('Please enter a gift code'); return; }
+    if (!code.trim()) { alert('Please enter a gift code'); return; }
     setLoading(true);
     setTimeout(() => {
       const result = redeemGiftCode(currentUser.id, code.trim());
       if (result.success) {
-        toast.success(`Gift code redeemed! +${formatUGX(result.amount || 0)}`);
+        alert(`Gift code redeemed! +${formatUGX(result.amount || 0)}`);
         setCode('');
       } else {
-        toast.error(result.message);
+        alert(result.message);
       }
       setLoading(false);
     }, 600);
@@ -32,7 +30,7 @@ export default function RedeemGiftPage() {
     <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
       <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
         <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
+          <span className="text-gray-400">‹</span>
         </button>
         <div className="flex items-center gap-2">
           <div className="flex flex-col gap-0.5">
@@ -56,7 +54,6 @@ export default function RedeemGiftPage() {
           </div>
           <p className="text-gray-500 text-sm mb-5">Redeem Gift Code</p>
 
-          {/* Telegram CTA */}
           <p className="text-sm text-gray-500 mb-2">Get gift codes from the official group</p>
           <a href={TELEGRAM_LINK} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-xl px-4 py-3 mb-5"
@@ -67,10 +64,9 @@ export default function RedeemGiftPage() {
             <span className="text-[#0088cc] text-sm">Official Telegram Group</span>
           </a>
 
-          {/* Code Input */}
           <div className="mb-4">
             <label className="text-sm font-medium text-gray-400 mb-2 block flex items-center gap-1.5">
-              <Tag size={13} className="text-[#c9a84c]" /> Gift Code
+              Gift Code
             </label>
             <input
               type="text"
@@ -84,12 +80,10 @@ export default function RedeemGiftPage() {
 
           <button onClick={handleRedeem} disabled={loading}
             className="w-full gold-gradient py-4 rounded-xl font-bold text-black disabled:opacity-60 flex items-center justify-center gap-2">
-            <Gift size={18} />
             {loading ? 'Redeeming...' : 'Confirm'}
           </button>
         </div>
 
-        {/* Info Box */}
         <div className="rounded-2xl p-4" style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)' }}>
           <p className="text-[#c9a84c] text-sm font-semibold mb-2">How to get gift codes?</p>
           <div className="space-y-1.5 text-xs text-gray-500">
