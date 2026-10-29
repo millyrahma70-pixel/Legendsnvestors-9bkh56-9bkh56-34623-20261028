@@ -11,6 +11,7 @@ import NotFound from '@/pages/NotFound';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
+const ProductPage = lazy(() => import('@/pages/ProductPage'));
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 
 const queryClient = new QueryClient();
@@ -28,9 +29,15 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/home" element={<CloudUserPage />} />
-          <Route path="/product" element={<CloudUserPage />} />
+          <Route path="/cloud-user" element={<CloudUserPage />} />
+          
+          {/* PRODUCTS - BOTH singular and plural - FIXES YOUR 404 */}
+          <Route path="/product" element={<ProductPage />} />
+          <Route path="/products" element={<ProductPage />} />
+          
           <Route path="/team" element={<CloudUserPage />} />
           <Route path="/mine" element={<CloudUserPage />} />
+          <Route path="/account" element={<CloudUserPage />} />
           <Route path="/checkin" element={<CloudUserPage />} />
           <Route path="/tasks" element={<CloudUserPage />} />
           <Route path="/recharge" element={<CloudUserPage />} />
@@ -38,6 +45,7 @@ const App = () => (
           <Route path="/bind-card" element={<CloudUserPage />} />
           <Route path="/records" element={<CloudUserPage />} />
           <Route path="/about" element={<CloudUserPage />} />
+          <Route path="/invite" element={<CloudUserPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
