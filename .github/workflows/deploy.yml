@@ -17,20 +17,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install inside subfolder
-        run: npm install
-        working-directory: ./Legendsnvestors-9bkh56-9bkh56-34623-20261028
-      - name: Build with env
-        run: npm run build
-        working-directory: ./Legendsnvestors-9bkh56-9bkh56-34623-20261028
+      - name: Find and Build
+        run: |
+          echo "Listing root:"
+          ls -la
+          PROJECT_DIR=$(find . -maxdepth 3 -name "package.json" | head -n1 | xargs dirname)
+          echo "Found PROJECT_DIR=$PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          npm install
+          npm run build
+          cp ./dist/index.html ./dist/404.html
+          echo "Build done, dist at $PROJECT_DIR/dist"
+          # Copy dist to workspace root for upload
+          rm -rf /tmp/dist_upload
+          cp -r ./dist /tmp/dist_upload
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v4
-      - name: Fix SPA routing
-        run: cp ./Legendsnvestors-9bkh56-9bkh56-34623-20261028/dist/index.html ./Legendsnvestors-9bkh56-9bkh56-34623-20261028/dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: './Legendsnvestors-9bkh56-9bkh56-34623-20261028/dist'
+          path: '/tmp/dist_upload'
       - id: deployment
         uses: actions/deploy-pages@v4
