@@ -1,104 +1,95 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { getCurrentUser, updateUser } from '@/lib/storage';
 
 const BANKS = ['MTN', 'AIRTEL'];
 
 export default function BindCardPage() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const [bank, setBank] = useState(currentUser?.bankCard?.bank || '');
-  const [holderName, setHolderName] = useState(currentUser?.bankCard?.holderName || currentUser?.phone || '');
-  const [accountNumber, setAccountNumber] = useState(currentUser?.bankCard?.accountNumber || '');
+  const [user,setUser]=useState<any>(null);
+  const [bank, setBank] = useState('');
+  const [holderName, setHolderName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   const [showBankPicker, setShowBankPicker] = useState(false);
 
-  if (!currentUser) { navigate('/'); return null; }
+  useEffect(()=>{
+    const s=localStorage.getItem('legend_session');
+    if(!s){ navigate('/login'); return; }
+    const u=JSON.parse(s);
+    setUser(u);
+    setBank(u.bankCard?.bank||'');
+    setHolderName(u.bankCard?.holderName||u.phone||'');
+    setAccountNumber(u.bankCard?.accountNumber||'');
+  },[]);
+
+  if (!user) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#e6a800'}}>Loading...</div>;
 
   const handleConfirm = () => {
-    if (!bank) { toast.error('Please select a bank'); return; }
-    if (!holderName.trim()) { toast.error('Please enter account holder name'); return; }
-    if (!accountNumber.trim()) { toast.error('Please enter bank account number'); return; }
-    updateUser(currentUser.id, {
-      bankCard: { bank, holderName: holderName.trim(), accountNumber: accountNumber.trim() },
-    });
-    toast.success('Bank card bound successfully!');
+    if (!bank) { alert('Please select a bank'); return; }
+    if (!holderName.trim()) { alert('Please enter account holder name'); return; }
+    if (!accountNumber.trim()) { alert('Please enter bank account number'); return; }
+    
+    const updated={...user,bankCard:{bank,holderName:holderName.trim(),accountNumber:accountNumber.trim()}};
+    localStorage.setItem('legend_session',JSON.stringify(updated));
+    const users=JSON.parse(localStorage.getItem('legend_users')||'[]');
+    const idx=users.findIndex((u:any)=>u.id===user.id);
+    if(idx>=0){ users[idx]=updated; localStorage.setItem('legend_users',JSON.stringify(users)); }
+    
+    alert('Bank card bound successfully!');
     navigate('/mine');
   };
 
   return (
-    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
-      {showBankPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.8)' }}>
-          <div className="w-full max-w-[480px] rounded-t-3xl" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <button onClick={() => setShowBankPicker(false)} className="text-gray-400 text-sm">Cancel</button>
-              <p className="text-white font-bold">Select Bank</p>
-              <button onClick={() => setShowBankPicker(false)} className="text-[#c9a84c] font-bold text-sm">Confirm</button>
-            </div>
-            {BANKS.map(b => (
-              <button key={b} onClick={() => { setBank(b); setShowBankPicker(false); }}
-                className="w-full px-5 py-4 text-left transition-colors hover:bg-white/5" style={{ borderBottom: '1px solid #222' }}>
-                <span className="text-white text-base font-medium">{b}</span>
-                {bank === b && <span className="float-right text-[#c9a84c]">✓</span>}
-              </button>
-            ))}
-            <div className="h-6" />
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
-        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-0.5">
-            <div className="w-4 h-0.5 gold-gradient rounded-full" />
-            <div className="w-4 h-0.5 gold-gradient rounded-full" />
-            <div className="w-4 h-0.5 gold-gradient rounded-full" />
-          </div>
-          <h1 className="text-white font-bold text-lg">Bind Bank Card</h1>
-        </div>
-      </div>
-
-      <div className="px-4 mt-4 space-y-4">
-        <div className="rounded-2xl p-5" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-          {[
-            { label: '* Select Bank', value: bank || 'Please select', isSelector: true },
-            { label: '* Account Holder Name', value: holderName, setter: setHolderName, placeholder: 'User name' },
-            { label: '* Bank Account', value: accountNumber, setter: setAccountNumber, placeholder: 'Enter MTN or Airtel number' },
-          ].map((field, i) => (
-            <div key={i} className="mb-4">
-              <label className="text-[#c9a84c] text-sm font-semibold mb-2 block">{field.label}</label>
-              {field.isSelector ? (
-                <button onClick={() => setShowBankPicker(true)}
-                  className="w-full flex items-center justify-between px-4 py-4 rounded-xl text-left"
-                  style={{ background: '#1e1e1e', border: '1.5px solid #333' }}>
-                  <span className={bank ? 'text-white' : 'text-gray-600'}>{field.value}</span>
-                  <ChevronDown size={16} className="text-gray-500" />
+    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',paddingBottom:'90px'}}>
+      <div style={{maxWidth:'440px',margin:'0 auto'}}>
+        {showBankPicker && (
+          <div style={{position:'fixed',inset:0,zIndex:50,display:'flex',alignItems:'end',justifyContent:'center',background:'rgba(0,0,0,0.8)'}}>
+            <div style={{width:'100%',maxWidth:'440px',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'24px 24px 0 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid #2a2a2a'}}>
+                <button onClick={() => setShowBankPicker(false)} style={{background:'none',border:'none',color:'#888',fontSize:'14px'}}>Cancel</button>
+                <p style={{color:'white',fontWeight:700}}>Select Bank</p>
+                <button onClick={() => setShowBankPicker(false)} style={{background:'none',border:'none',color:'#e6a800',fontWeight:700,fontSize:'14px'}}>Confirm</button>
+              </div>
+              {BANKS.map(b => (
+                <button key={b} onClick={() => { setBank(b); setShowBankPicker(false); }}
+                  style={{width:'100%',padding:'16px 20px',textAlign:'left',background:'transparent',border:'none',borderBottom:'1px solid #222',display:'flex',justifyContent:'space-between'}}>
+                  <span style={{color:'white',fontSize:'15px',fontWeight:500}}>{b}</span>
+                  {bank === b && <span style={{color:'#e6a800'}}>✓</span>}
                 </button>
-              ) : (
-                <input type="text" value={field.value}
-                  onChange={e => field.setter && field.setter(e.target.value)}
-                  placeholder={field.placeholder}
-                  className="w-full px-4 py-4 rounded-xl outline-none text-sm text-white placeholder-gray-600"
-                  style={{ background: '#1e1e1e', border: '1.5px solid #333' }} />
-              )}
+              ))}
+              <div style={{height:'24px'}} />
             </div>
-          ))}
+          </div>
+        )}
 
-          <button onClick={handleConfirm} className="w-full gold-gradient py-4 rounded-xl font-bold text-black text-base">
-            Confirm
-          </button>
+        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 16px',background:'#111',borderBottom:'1px solid #222'}}>
+          <button onClick={() => navigate(-1)} style={{width:'32px',height:'32px',borderRadius:'10px',background:'#1e1e1e',border:'none',color:'#888',fontSize:'18px'}}>‹</button>
+          <h1 style={{fontWeight:700,fontSize:'16px'}}>Bind Bank Card</h1>
         </div>
 
-        <div className="rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-          <p className="text-gray-500 text-xs">Please enter your actual MTN or Airtel Money account number. Incorrect information may result in failed withdrawals.</p>
+        <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:'14px'}}>
+          <div style={{borderRadius:'20px',padding:'20px',background:'#151515',border:'1px solid #222'}}>
+            <div style={{marginBottom:'16px'}}>
+              <label style={{color:'#e6a800',fontSize:'13px',fontWeight:600,display:'block',marginBottom:'8px'}}>* Select Bank</label>
+              <button onClick={() => setShowBankPicker(true)} style={{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px',borderRadius:'12px',background:'#1e1e1e',border:'1px solid #333',color:bank?'white':'#666',fontSize:'14px'}}>
+                <span>{bank || 'Please select'}</span><span>▼</span>
+              </button>
+            </div>
+            <div style={{marginBottom:'16px'}}>
+              <label style={{color:'#e6a800',fontSize:'13px',fontWeight:600,display:'block',marginBottom:'8px'}}>* Account Holder Name</label>
+              <input type="text" value={holderName} onChange={e => setHolderName(e.target.value)} placeholder="User name" style={{width:'100%',padding:'16px',borderRadius:'12px',background:'#1e1e1e',border:'1px solid #333',color:'white',outline:'none',fontSize:'14px'}} />
+            </div>
+            <div style={{marginBottom:'20px'}}>
+              <label style={{color:'#e6a800',fontSize:'13px',fontWeight:600,display:'block',marginBottom:'8px'}}>* Bank Account</label>
+              <input type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="Enter MTN or Airtel number" style={{width:'100%',padding:'16px',borderRadius:'12px',background:'#1e1e1e',border:'1px solid #333',color:'white',outline:'none',fontSize:'14px'}} />
+            </div>
+            <button onClick={handleConfirm} style={{width:'100%',padding:'16px',borderRadius:'12px',fontWeight:800,background:'#e6a800',color:'black',border:'none',fontSize:'15px'}}>Confirm</button>
+          </div>
+
+          <div style={{borderRadius:'16px',padding:'16px',background:'#151515',border:'1px solid #222'}}>
+            <p style={{color:'#666',fontSize:'11px',lineHeight:'1.5'}}>Please enter your actual MTN or Airtel Money account number. Incorrect information may result in failed withdrawals.</p>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+                              }
