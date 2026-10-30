@@ -1,66 +1,74 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-const TELEGRAM_LINK = 'https://t.me/+-dWGeVqFYhllZWY0';
-const WHATSAPP = '966557067827';
+import { Link } from 'react-router-dom';
 
 export default function InvitePage() {
-  const navigate = useNavigate();
-  const [user,setUser]=useState<any>(null);
-  const [copied,setCopied]=useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+  
+  const WHATSAPP = "966 557067827"; // change to your number
 
-  useEffect(()=>{
-    const s=localStorage.getItem('legend_session');
-    if(!s){ navigate('/login'); return; }
-    const u=JSON.parse(s);
-    setUser(u);
-  },[]);
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('legend_session');
+      if (s) setUser(JSON.parse(s));
+    } catch {}
+  }, []);
 
-  if(!user) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#e6a800'}}>Loading...</div>;
+  const inviteCode = user?.id ? `LEGEND-${user.id.slice(0,6).toUpperCase()}` : 'LEGEND-XXXX';
+  const inviteLink = `${window.location.origin}/#/register?ref=${inviteCode}`;
+  const shareText = `Join Legend Investors with my code ${inviteCode}: ${inviteLink}`;
 
-  const referralCode = user.referralCode || user.id?.slice(0,6).toUpperCase() || 'LEGEND';
-  const referralUrl = `${window.location.origin}/#/register?ref=${referralCode}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(referralUrl)}&color=e6a800&bgcolor=151515`;
-
-  const copyLink=()=>{
-    navigator.clipboard.writeText(referralUrl);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(inviteLink);
     setCopied(true);
-    setTimeout(()=>setCopied(false),2000);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',paddingBottom:'90px'}}>
-      <div style={{maxWidth:'440px',margin:'0 auto'}}>
-        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 16px',background:'#111',borderBottom:'1px solid #222'}}>
-          <button onClick={()=>navigate(-1)} style={{width:'32px',height:'32px',borderRadius:'10px',background:'#1e1e1e',border:'none',color:'#888'}}>‹</button>
-          <h1 style={{fontWeight:700}}>Invite & Earn</h1>
+    <div style={{ minHeight: '100vh', background: '#121212', color: 'white', paddingBottom: '80px' }}>
+      <div style={{ padding: '14px 20px', background: '#1e1e1e', borderBottom: '1px solid #2a2a2a' }}>
+        <h1 style={{ color: '#c9a84c', fontWeight: 700, fontSize: '20px' }}>Legend Investors</h1>
+      </div>
+
+      <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px' }}>
+        <h2 style={{ fontSize: '26px', fontWeight: 800, margin: '10px 0 16px 4px' }}>Invite Friends</h2>
+
+        <div style={{ background: '#1e1e1e', borderRadius: '24px', padding: '20px', border: '1px solid #2a2a2a', marginBottom: '16px' }}>
+          <p style={{ color: '#9a9a9a', fontSize: '14px', marginBottom: '8px' }}>Your invite code</p>
+          <p style={{ fontSize: '28px', fontWeight: 800, color: '#c9a84c', letterSpacing: '1px' }}>{inviteCode}</p>
+          
+          <div style={{ marginTop: '16px', background: '#2a2a2a', borderRadius: '12px', padding: '12px', wordBreak: 'break-all', fontSize: '13px', color: '#aaa' }}>
+            {inviteLink}
+          </div>
+
+          <button onClick={handleCopy} style={{ width: '100%', marginTop: '16px', background: '#e6b800', color: 'black', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 700, fontSize: '15px' }}>
+            {copied ? 'Copied!' : 'Copy Invite Link'}
+          </button>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
+            <a href={'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(shareText)} target="_blank" rel="noreferrer" style={{ textAlign: 'center', background: '#25D366', color: 'white', padding: '12px', borderRadius: '12px', fontWeight: 700, textDecoration: 'none', fontSize: '14px' }}>
+              WhatsApp
+            </a>
+            <Link to="/team" style={{ textAlign: 'center', background: '#2a2a2a', color: 'white', padding: '12px', borderRadius: '12px', fontWeight: 700, textDecoration: 'none', fontSize: '14px' }}>
+              My Team
+            </Link>
+          </div>
         </div>
 
-        <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:'14px'}}>
-          <div style={{borderRadius:'20px',padding:'20px',background:'linear-gradient(135deg,#1a1100,#2d1f00)',border:'1px solid rgba(230,168,0,0.4)'}}>
-            <p style={{color:'#e6a800',fontSize:'12px'}}>Legend Investors</p>
-            <h2 style={{fontSize:'22px',fontWeight:800,margin:'4px 0'}}>Invite Friends</h2>
-            <p style={{color:'#e6a800',fontWeight:600}}>Earn up to <b style={{fontSize:'20px'}}>27%</b> commission instantly</p>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginTop:'14px'}}>
-              <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'12px',padding:'10px',textAlign:'center'}}><p style={{color:'#e6a800',fontWeight:800}}>UGX 9K</p><p style={{color:'#666',fontSize:'9px'}}>Bonus</p></div>
-              <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'12px',padding:'10px',textAlign:'center'}}><p style={{color:'#e6a800',fontWeight:800}}>{referralCode}</p><p style={{color:'#666',fontSize:'9px'}}>Your Code</p></div>
-              <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'12px',padding:'10px',textAlign:'center'}}><p style={{color:'#e6a800',fontWeight:800}}>27%</p><p style={{color:'#666',fontSize:'9px'}}>Level 1</p></div>
-            </div>
-          </div>
+        <div style={{ background: '#1e1e1e', borderRadius: '24px', padding: '20px', border: '1px solid #2a2a2a' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: '12px' }}>How it works</h3>
+          <p style={{ color: '#9a9a9a', fontSize: '14px', lineHeight: '20px' }}>
+            Share your link. When friends recharge, you get L1 15%, L2 5%, L3 2% commission instantly.
+          </p>
+        </div>
+      </div>
 
-          <div style={{background:'#151515',border:'1px solid #222',borderRadius:'20px',padding:'20px'}}>
-            <p style={{fontWeight:700,marginBottom:'12px'}}>📱 Your QR Code</p>
-            <div style={{display:'flex',gap:'16px',alignItems:'center'}}>
-              <img src={qrUrl} alt="QR" style={{width:'120px',height:'120px',borderRadius:'12px',background:'#111',padding:'8px'}}/>
-              <div style={{flex:1}}>
-                <p style={{color:'#888',fontSize:'11px',marginBottom:'6px'}}>Share your invite link:</p>
-                <div style={{background:'#1e1e1e',border:'1px solid #333',borderRadius:'12px',padding:'10px',wordBreak:'break-all'}}>
-                  <p style={{color:'#e6a800',fontSize:'10px'}}>{referralUrl}</p>
-                </div>
-                <button onClick={copyLink} style={{width:'100%',marginTop:'10px',padding:'12px',borderRadius:'12px',background:'#e6a800',color:'black',fontWeight:800,border:'none'}}>{copied?'✓ Copied!':'Copy Link'}</button>
-              </div>
-            </div>
-          </div>
-
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
-            <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#1e1e1e', borderTop: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-around', padding: '8px 0 14px' }}>
+        <Link to="/home" style={{ textAlign: 'center', textDecoration: 'none', color: '#888', flex: 1 }}><div>⌂</div><div style={{ fontSize: '12px' }}>Home</div></Link>
+        <Link to="/products" style={{ textAlign: 'center', textDecoration: 'none', color: '#888', flex: 1 }}><div>◫</div><div style={{ fontSize: '12px' }}>Products</div></Link>
+        <Link to="/team" style={{ textAlign: 'center', textDecoration: 'none', color: '#c9a84c', flex: 1 }}><div>👥</div><div style={{ fontSize: '12px', fontWeight: 700 }}>Team</div></Link>
+        <Link to="/mine" style={{ textAlign: 'center', textDecoration: 'none', color: '#888', flex: 1 }}><div>👤</div><div style={{ fontSize: '12px' }}>Account</div></Link>
+      </div>
+    </div>
+  );
+                     }
