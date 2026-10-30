@@ -5,7 +5,7 @@ export default function InvitePage() {
   const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   
-  const WHATSAPP = "966 557067827"; // change to your number
+  const WHATSAPP = "966557067827"; // change to your number
 
   useEffect(() => {
     try {
