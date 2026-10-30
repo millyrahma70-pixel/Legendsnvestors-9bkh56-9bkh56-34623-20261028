@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
@@ -20,7 +20,7 @@ import WithdrawStatusPage from "./pages/WithdrawStatusPage";
 import BindCardPage from "./pages/BindCardPage";
 import RecordsPage from "./pages/RecordsPage";
 import CustomerServicePage from "./pages/CustomerServicePage";
-import ProfilePage from "./pages/ProfilePage"; // <-- FIXED IMPORT
+import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
 import RegulationPage from "./pages/RegulationPage";
 import AdminPage from "./pages/AdminPage";
@@ -38,10 +38,23 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          
+          {/* HOME */}
           <Route path="/home" element={<HomePage />} />
+
+          {/* PRODUCTS - FIXED: both /product and /products work now */}
           <Route path="/product" element={<ProductPage />} />
+          <Route path="/products" element={<ProductPage />} />
+
+          {/* TEAM */}
           <Route path="/team" element={<TeamPage />} />
+
+          {/* ACCOUNT - FIXED: /account, /mine, /profile all work now */}
           <Route path="/mine" element={<MinePage />} />
+          <Route path="/account" element={<MinePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/edit-profile" element={<ProfilePage />} />
+
           <Route path="/checkin" element={<CheckInPage />} />
           <Route path="/tasks" element={<TaskCenterPage />} />
           <Route path="/recharge" element={<RechargePage />} />
@@ -51,8 +64,6 @@ const App = () => (
           <Route path="/bind-card" element={<BindCardPage />} />
           <Route path="/records" element={<RecordsPage />} />
           <Route path="/customer-service" element={<CustomerServicePage />} />
-          <Route path="/edit-profile" element={<ProfilePage />} />
-          <Route path="/profile" element={<ProfilePage />} /> {/* add this too */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/regulation" element={<RegulationPage />} />
           <Route path="/redeem" element={<RedeemGiftPage />} />
