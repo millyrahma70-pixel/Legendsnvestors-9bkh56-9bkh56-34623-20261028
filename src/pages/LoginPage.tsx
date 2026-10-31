@@ -14,11 +14,16 @@ export default function LoginPage(){
       const c=await getSupabaseClient();
       const {error,data}=await (c as any).auth.signInWithPassword({email:`${phone}@legends.local`,password:pass});
       if(error){
-        // Try local storage fallback
+        // Try local storage fallback - ALSO FIXED FOR TEAM
         const users = JSON.parse(localStorage.getItem('legend_users')||'{}');
         const u = users[`${phone}@legends.local`];
         if(u && u.password===pass){
-          localStorage.setItem('legend_session', JSON.stringify({user:{email:`${phone}@legends.local`, user_metadata:u.data}}));
+          const sessionData = {user:{email:`${phone}@legends.local`, user_metadata:u.data, id: u.data?.phone || phone}};
+          localStorage.setItem('legend_session', JSON.stringify(sessionData));
+          // FIXED: Save for Team page
+          const teamUser = { phone, email:`${phone}@legends.local`, id: phone, full_name: u.data?.full_name, referralCode: u.data?.ref || u.data?.referralCode || u.data?.referral_code || 'LGDEMO', referral_code: u.data?.ref || 'LGDEMO', data: u.data };
+          localStorage.setItem('legend_current_user', JSON.stringify(teamUser));
+          localStorage.setItem('currentUser', JSON.stringify(teamUser));
           setMsg('Welcome back! (Demo mode)');
           setTimeout(()=>nav('/home'),800);
         } else {
@@ -26,7 +31,20 @@ export default function LoginPage(){
         }
       } else if(data?.session) { 
         localStorage.setItem('legend_session', JSON.stringify(data.session));
-        setMsg('Welcome back!'); 
+        // FIXED: Save for Team page - SUPABASE
+        const meta = data.user?.user_metadata || {};
+        const teamUser = { 
+          phone, 
+          email: data.user.email, 
+          id: data.user.id, 
+          full_name: meta.full_name || meta.name || phone,
+          referralCode: meta.referral_code || meta.referralCode || meta.ref || 'LG' + data.user.id.slice(0,6).toUpperCase(),
+          referral_code: meta.referral_code || meta.ref || 'LGDEMO',
+          balance: 9000
+        };
+        localStorage.setItem('legend_current_user', JSON.stringify(teamUser));
+        localStorage.setItem('currentUser', JSON.stringify(teamUser));
+        setMsg('Welcome back! Connected on Supabase ✅'); 
         setTimeout(()=>nav('/home'),800); 
       } else {
         setMsg('Check credentials');
@@ -42,7 +60,12 @@ export default function LoginPage(){
         } else if(u.password!==pass){
           setMsg('Wrong password');
         } else {
-          localStorage.setItem('legend_session', JSON.stringify({user:{email:key, user_metadata:u.data}, access_token:'demo'}));
+          const sessionData = {user:{email:key, user_metadata:u.data, id: phone}, access_token:'demo'};
+          localStorage.setItem('legend_session', JSON.stringify(sessionData));
+          // FIXED: Save for Team page
+          const teamUser = { phone, email:key, id: phone, full_name: u.data?.full_name, referralCode: u.data?.ref || u.data?.referralCode || 'LGDEMO', referral_code: u.data?.ref || 'LGDEMO', data: u.data };
+          localStorage.setItem('legend_current_user', JSON.stringify(teamUser));
+          localStorage.setItem('currentUser', JSON.stringify(teamUser));
           setMsg('Welcome back! (Offline mode - Going to dashboard...)');
           setTimeout(()=>nav('/home'),800);
         }
@@ -86,4 +109,4 @@ export default function LoginPage(){
       </div>
     </div>
   );
-        }
+      }
