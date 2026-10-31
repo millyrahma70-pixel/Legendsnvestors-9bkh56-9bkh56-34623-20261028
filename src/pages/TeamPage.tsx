@@ -1,7 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-function formatUGX(n:number){ return `UGX ${n.toLocaleString()}`; }
+function formatUGX(n:number){ return `UGX ${Number(n||0).toLocaleString()}`; }
+
+// SAFE helper
+function safeTeamParse(raw: string | null){
+  try{
+    const t = JSON.parse(raw || '{"l1":[],"l2":[],"l3":[]}');
+    return {
+      l1: Array.isArray(t?.l1) ? t.l1 : [],
+      l2: Array.isArray(t?.l2) ? t.l2 : [],
+      l3: Array.isArray(t?.l3) ? t.l3 : [],
+    };
+  }catch{
+    return {l1:[],l2:[],l3:[]};
+  }
+}
+function safeCommParse(raw: string | null){
+  try{
+    const c = JSON.parse(raw || '{"l1":0,"l2":0,"l3":0}');
+    return {l1:Number(c?.l1||0),l2:Number(c?.l2||0),l3:Number(c?.l3||0)};
+  }catch{
+    return {l1:0,l2:0,l3:0};
+  }
+}
 
 export default function TeamPage() {
   const navigate = useNavigate();
@@ -13,17 +35,21 @@ export default function TeamPage() {
   useEffect(()=>{
     const s=localStorage.getItem('legend_session');
     if(!s){ navigate('/login'); return; }
-    const u=JSON.parse(s);
-    setUser(u);
-    const t=JSON.parse(localStorage.getItem(`legend_team_${u.id}`)||'{"l1":[],"l2":[],"l3":[]}');
-    setTeam(t);
-    const c=JSON.parse(localStorage.getItem(`legend_comm_${u.id}`)||'{"l1":0,"l2":0,"l3":0}');
-    setCommissions(c);
+    try{
+      const u=JSON.parse(s);
+      setUser(u);
+      setTeam(safeTeamParse(localStorage.getItem(`legend_team_${u.id}`)));
+      setCommissions(safeCommParse(localStorage.getItem(`legend_comm_${u.id}`)));
+    }catch(e){
+      console.log("Session corrupt, reset", e);
+      localStorage.removeItem('legend_session');
+      navigate('/login');
+    }
   },[]);
 
   if (!user) return <div style={{minHeight:'100vh',background:'#0f0f0f',display:'grid',placeItems:'center',color:'#c9a84c'}}>Loading...</div>;
 
-  const totalTeam = team.l1.length + team.l2.length + team.l3.length;
+  const totalTeam = (team.l1?.length||0) + (team.l2?.length||0) + (team.l3?.length||0);
   const referralUrl = `${window.location.origin}/#/register?ref=${user.referralCode||user.id}`;
 
   const copy = async () => {
@@ -115,7 +141,7 @@ export default function TeamPage() {
         ) : (
           <div style={{padding:'0 16px'}}>
             <h3 style={{color:'white',fontWeight:600,fontSize:'13px',marginBottom:'8px'}}>Level 1 Members</h3>
-            {team.l1.map((m:any)=>(
+            {(team.l1||[]).map((m:any)=>(
               <div key={m.id} style={{borderRadius:'12px',padding:'12px',display:'flex',justifyContent:'space-between',marginBottom:'6px', background:'#151515', border:'1px solid #2a2a2a'}}>
                 <div><p style={{color:'white',fontSize:'13px',fontWeight:500}}>{m.phone||m.id}</p><p style={{color:'#666',fontSize:'11px'}}>{new Date(m.createdAt||Date.now()).toLocaleDateString()}</p></div><span style={{color:'#c9a84c',fontSize:'11px',fontWeight:600}}>Lv1</span>
               </div>
@@ -132,4 +158,4 @@ export default function TeamPage() {
       </div>
     </div>
   );
-          }
+                                 }
