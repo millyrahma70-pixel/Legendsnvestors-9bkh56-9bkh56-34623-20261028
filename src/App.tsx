@@ -1,110 +1,93 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage";
-import CloudUserPage from "./pages/CloudUserPage";
-import ProductPage from "./pages/ProductPage";
-import MinePage from "./pages/MinePage";
-import ProfilePage from "./pages/ProfilePage";
-import AboutPage from "./pages/AboutPage";
-import BindCardPage from "./pages/BindCardPage";
-import RecordsPage from "./pages/RecordsPage";
-import RechargePage from "./pages/RechargePage";
-import CheckInPage from "./pages/CheckInPage";
-import RechargeStatusPage from "./pages/RechargeStatusPage";
-import CustomerServicePage from "./pages/CustomerServicePage";
-import RedeemGiftPage from "./pages/RedeemGiftPage";
-import AdminPage from "./pages/AdminPage";
-import AdminLoginPage from "./pages/AdminLoginPage";
-import InvitePage from "./pages/InvitePage";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from 'react';
+import Index from '@/pages/Index';
+import NotFound from '@/pages/NotFound';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
+import AdminAuthProvider from '@/components/features/AdminAuthProvider';
+import AdminAccessGate from '@/components/features/AdminAccessGate';
+import AdminErrorBoundary from '@/components/features/AdminErrorBoundary';
+import RegistrationSync from '@/components/features/RegistrationSync';
 
-function WithdrawPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#121212', color: 'white', padding: '20px' }}>
-      <h2 style={{ color: '#c9a84c' }}>Withdraw</h2>
-      <p style={{ color: '#888', marginTop: '10px' }}>Min UGX 5,000 - 5% fee - 24h process</p>
-      <a href="#/mine" style={{ color: '#c9a84c', display: 'inline-block', marginTop: '20px' }}>Back to Account</a>
-    </div>
-  );
-}
+// FIXED - Import REAL pages, not CloudUserPage
+const ProductPage = lazy(() => import('@/pages/ProductPage'));
+const MinePage = lazy(() => import('@/pages/MinePage'));
+const TaskCenterPage = lazy(() => import('@/pages/TaskCenterPage'));
+const RechargePage = lazy(() => import('@/pages/RechargePage'));
+const WithdrawPage = lazy(() => import('@/pages/WithdrawPage'));
+const BindCardPage = lazy(() => import('@/pages/BindCardPage'));
+const RecordsPage = lazy(() => import('@/pages/RecordsPage'));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const RegulationPage = lazy(() => import('@/pages/RegulationPage'));
+const CustomerServicePage = lazy(() => import('@/pages/CustomerServicePage'));
+const RedeemGiftPage = lazy(() => import('@/pages/RedeemGiftPage'));
+const CheckInPage = lazy(() => import('@/pages/CheckInPage'));
+const InvitePage = lazy(() => import('@/pages/InvitePage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const RechargeStatusPage = lazy(() => import('@/pages/RechargeStatusPage'));
 
-function RegulationPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#121212', color: 'white', padding: '20px' }}>
-      <h2 style={{ color: '#c9a84c' }}>Platform Rules</h2>
-      <div style={{ marginTop: '16px', lineHeight: '22px', fontSize: '14px', color: '#ccc' }}>
-        <p>1. Daily income at 00:00 UTC</p><p>2. L1 15%, L2 5%, L3 2% commission</p><p>3. Min recharge 20k, min withdraw 5k</p>
-      </div>
-      <a href="#/mine" style={{ color: '#c9a84c', display: 'inline-block', marginTop: '20px' }}>Back</a>
-    </div>
-  );
-}
+const AdminPage = lazy(() => import('@/pages/AdminPage'));
+const AdminRecoveryPage = lazy(() => import('@/pages/AdminRecoveryPage'));
 
-function TaskCenterPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#121212', color: 'white', padding: '20px' }}>
-      <h2 style={{ color: '#c9a84c' }}>Task Center</h2>
-      <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
-        <a href="#/checkin" style={{ background: '#1e1e1e', padding: '16px', borderRadius: '12px', color: 'white', textDecoration: 'none' }}>Daily Check-in →</a>
-        <a href="#/invite" style={{ background: '#1e1e1e', padding: '16px', borderRadius: '12px', color: 'white', textDecoration: 'none' }}>Invite Friends →</a>
-        <a href="#/redeem" style={{ background: '#1e1e1e', padding: '16px', borderRadius: '12px', color: 'white', textDecoration: 'none' }}>Redeem Gift →</a>
-      </div>
-    </div>
-  );
-}
+const queryClient = new QueryClient();
 
-function WithdrawStatusPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#121212', color: 'white', padding: '20px' }}>
-      <h2 style={{ color: '#c9a84c' }}>Withdrawal Status</h2>
-      <p style={{ color: '#666', marginTop: '20px' }}>No withdrawals yet</p>
-      <a href="#/mine" style={{ color: '#c9a84c', display: 'inline-block', marginTop: '20px' }}>Back</a>
-    </div>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AdminAuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <HashRouter>
+        <RegistrationSync />
+        <Suspense fallback={<div role="status" className="min-h-screen grid place-items-center bg-background text-foreground">Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/home" element={<CloudUserPage />} />
+          
+          {/* FIXED ROUTES - REAL PAGES NOW */}
+          <Route path="/product" element={<ProductPage />} />
+          <Route path="/products" element={<ProductPage />} />
+          <Route path="/team" element={<InvitePage />} />
+          <Route path="/invite" element={<InvitePage />} />
+          <Route path="/mine" element={<MinePage />} />
+          <Route path="/account" element={<MinePage />} />
+          <Route path="/checkin" element={<CheckInPage />} />
+          <Route path="/check-in" element={<CheckInPage />} />
+          <Route path="/tasks" element={<TaskCenterPage />} />
+          <Route path="/task-center" element={<TaskCenterPage />} />
+          <Route path="/task" element={<TaskCenterPage />} />
+          <Route path="/recharge" element={<RechargePage />} />
+          <Route path="/withdraw" element={<WithdrawPage />} />
+          <Route path="/withdrawal" element={<WithdrawPage />} />
+          <Route path="/bind-card" element={<BindCardPage />} />
+          <Route path="/records" element={<RecordsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/regulation" element={<RegulationPage />} />
+          <Route path="/platform-rules" element={<RegulationPage />} />
+          <Route path="/rules" element={<RegulationPage />} />
+          <Route path="/customer-service" element={<CustomerServicePage />} />
+          <Route path="/redeem" element={<RedeemGiftPage />} />
+          <Route path="/withdraw-status" element={<RecordsPage />} />
+          <Route path="/recharge-status" element={<RechargeStatusPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
 
-export default function App() {
-  return (
-    <HashRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<LoginPage />} />
-        <Route path="/home" element={<CloudUserPage />} />
-        <Route path="/cloud-user" element={<CloudUserPage />} />
-        <Route path="/product" element={<ProductPage />} />
-        <Route path="/products" element={<ProductPage />} />
-        <Route path="/team" element={<InvitePage />} />
-        <Route path="/invite" element={<InvitePage />} />
-        <Route path="/mine" element={<MinePage />} />
-        <Route path="/account" element={<MinePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/bind-card" element={<BindCardPage />} />
-        <Route path="/records" element={<RecordsPage />} />
-        <Route path="/recharge" element={<RechargePage />} />
-        <Route path="/recharge-status" element={<RechargeStatusPage />} />
-        <Route path="/checkin" element={<CheckInPage />} />
-        <Route path="/customer-service" element={<CustomerServicePage />} />
-        <Route path="/redeem" element={<RedeemGiftPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+          <Route path="/admin/recovery" element={<AdminErrorBoundary><AdminRecoveryPage /></AdminErrorBoundary>} />
+          <Route path="/admin" element={<AdminErrorBoundary><AdminAccessGate><AdminPage /></AdminAccessGate></AdminErrorBoundary>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        </Suspense>
+      </HashRouter>
+    </TooltipProvider>
+    </AdminAuthProvider>
+  </QueryClientProvider>
+);
 
-        {/* THESE WERE MISSING - CAUSING YOUR 404 */}
-        <Route path="/withdraw" element={<WithdrawPage />} />
-        <Route path="/withdrawal" element={<WithdrawPage />} />
-        <Route path="/withdrawal-status" element={<WithdrawStatusPage />} />
-        <Route path="/withdraw-status" element={<WithdrawStatusPage />} />
-        <Route path="/regulation" element={<RegulationPage />} />
-        <Route path="/platform-rules" element={<RegulationPage />} />
-        <Route path="/rules" element={<RegulationPage />} />
-        <Route path="/task" element={<TaskCenterPage />} />
-        <Route path="/tasks" element={<TaskCenterPage />} />
-        <Route path="/task-center" element={<TaskCenterPage />} />
-        <Route path="/taskcenter" element={<TaskCenterPage />} />
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </HashRouter>
-  );
-                               }
+export default App;
