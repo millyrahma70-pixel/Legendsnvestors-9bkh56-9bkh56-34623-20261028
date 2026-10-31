@@ -3,57 +3,71 @@ import { Link, useNavigate } from 'react-router-dom';
 
 function formatUGX(n:number){ return `UGX ${Number(n||0).toLocaleString()}`; }
 
-// SAFE helper
-function safeTeamParse(raw: string | null){
-  try{
-    const t = JSON.parse(raw || '{"l1":[],"l2":[],"l3":[]}');
-    return {
-      l1: Array.isArray(t?.l1) ? t.l1 : [],
-      l2: Array.isArray(t?.l2) ? t.l2 : [],
-      l3: Array.isArray(t?.l3) ? t.l3 : [],
-    };
-  }catch{
-    return {l1:[],l2:[],l3:[]};
-  }
-}
-function safeCommParse(raw: string | null){
-  try{
-    const c = JSON.parse(raw || '{"l1":0,"l2":0,"l3":0}');
-    return {l1:Number(c?.l1||0),l2:Number(c?.l2||0),l3:Number(c?.l3||0)};
-  }catch{
-    return {l1:0,l2:0,l3:0};
-  }
-}
-
 export default function TeamPage() {
   const navigate = useNavigate();
   const [user,setUser]=useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [team,setTeam]=useState({l1:[],l2:[],l3:[]});
+  const [team,setTeam]=useState<{l1:any[],l2:any[],l3:any[]}>({l1:[],l2:[],l3:[]});
   const [commissions,setCommissions]=useState({l1:0,l2:0,l3:0});
 
   useEffect(()=>{
-    const s=localStorage.getItem('legend_session');
-    if(!s){ navigate('/login'); return; }
-    try{
-      const u=JSON.parse(s);
-      setUser(u);
-      setTeam(safeTeamParse(localStorage.getItem(`legend_team_${u.id}`)));
-      setCommissions(safeCommParse(localStorage.getItem(`legend_comm_${u.id}`)));
-    }catch(e){
-      console.log("Session corrupt, reset", e);
-      localStorage.removeItem('legend_session');
-      navigate('/login');
+    try {
+      // Try both session keys
+      const sessionRaw = localStorage.getItem('legend_session') || localStorage.getItem('legend_current_user');
+      let currentId = sessionRaw;
+      let currentUser = null;
+      
+      // If session is JSON object
+      try { 
+        const parsed = JSON.parse(sessionRaw || 'null');
+        if (parsed?.id) { currentUser = parsed; currentId = parsed.id; }
+        else { currentId = sessionRaw; }
+      } catch { currentId = sessionRaw; }
+
+      // Get users safely
+      const usersRaw = localStorage.getItem('legend_users');
+      const allUsers = (() => { try { const p = JSON.parse(usersRaw||'[]'); return Array.isArray(p) ? p : []; } catch { return []; } })();
+
+      // Find current user
+      if (!currentUser) {
+        currentUser = allUsers.find((u:any) => u.id === currentId) || null;
+      }
+      if (!currentUser) { navigate('/login'); return; }
+
+      setUser(currentUser);
+
+      // Build team from referral chain - NEVER crashes
+      const l1 = allUsers.filter((u:any) => u?.referredBy === currentUser.id);
+      const l2 = allUsers.filter((u:any) => l1.some((a:any) => a?.id === u?.referredBy));
+      const l3 = allUsers.filter((u:any) => l2.some((a:any) => a?.id === u?.referredBy));
+      setTeam({ l1, l2, l3 });
+
+      // Commissions from transactions
+      try {
+        const txRaw = localStorage.getItem('legend_transactions');
+        const txs = JSON.parse(txRaw||'[]');
+        const myTx = Array.isArray(txs) ? txs.filter((t:any) => t.userId === currentUser.id && t.type === 'referral') : [];
+        const l1c = myTx.filter((t:any) => t.description?.includes('Level 1')).reduce((s:any, t:any) => s + (t.amount||0), 0);
+        const l2c = myTx.filter((t:any) => t.description?.includes('Level 2')).reduce((s:any, t:any) => s + (t.amount||0), 0);
+        const l3c = myTx.filter((t:any) => t.description?.includes('Level 3')).reduce((s:any, t:any) => s + (t.amount||0), 0);
+        setCommissions({ l1: l1c, l2: l2c, l3: l3c });
+      } catch {}
+
+    } catch(e) {
+      console.error(e);
+      // Don't crash, show empty
+      setTeam({l1:[],l2:[],l3:[]});
     }
   },[]);
 
   if (!user) return <div style={{minHeight:'100vh',background:'#0f0f0f',display:'grid',placeItems:'center',color:'#c9a84c'}}>Loading...</div>;
 
-  const totalTeam = (team.l1?.length||0) + (team.l2?.length||0) + (team.l3?.length||0);
-  const referralUrl = `${window.location.origin}/#/register?ref=${user.referralCode||user.id}`;
+  const totalTeam = team.l1.length + team.l2.length + team.l3.length;
+  // FIXED - Keeps repo name for GitHub Pages!
+  const referralUrl = `${window.location.origin}${window.location.pathname}#/register?ref=${user.referralCode || user.id}`;
 
   const copy = async () => {
-    try{ await navigator.clipboard.writeText(referralUrl); }catch{ }
+    try{ await navigator.clipboard.writeText(referralUrl); }catch{}
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -91,7 +105,7 @@ export default function TeamPage() {
         </div>
 
         <div style={{margin:'0 16px 12px',borderRadius:'20px',padding:'16px', background:'#151515', border:'1px solid #2a2a2a'}}>
-          <p style={{color:'#888',fontSize:'13px',marginBottom:'8px',fontWeight:500}}>Share URL</p>
+          <p style={{color:'#888',fontSize:'13px',marginBottom:'8px',fontWeight:500}}>Share URL - Your own code: {user.referralCode}</p>
           <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>
             <div style={{flex:1,borderRadius:'12px',padding:'10px 12px',fontSize:'11px',color:'#888', background:'#1e1e1e', border:'1px solid #333',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {referralUrl}
@@ -141,7 +155,7 @@ export default function TeamPage() {
         ) : (
           <div style={{padding:'0 16px'}}>
             <h3 style={{color:'white',fontWeight:600,fontSize:'13px',marginBottom:'8px'}}>Level 1 Members</h3>
-            {(team.l1||[]).map((m:any)=>(
+            {team.l1.map((m:any)=>(
               <div key={m.id} style={{borderRadius:'12px',padding:'12px',display:'flex',justifyContent:'space-between',marginBottom:'6px', background:'#151515', border:'1px solid #2a2a2a'}}>
                 <div><p style={{color:'white',fontSize:'13px',fontWeight:500}}>{m.phone||m.id}</p><p style={{color:'#666',fontSize:'11px'}}>{new Date(m.createdAt||Date.now()).toLocaleDateString()}</p></div><span style={{color:'#c9a84c',fontSize:'11px',fontWeight:600}}>Lv1</span>
               </div>
@@ -158,4 +172,4 @@ export default function TeamPage() {
       </div>
     </div>
   );
-                                 }
+               }
