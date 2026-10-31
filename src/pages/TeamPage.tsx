@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Copy, Check, Users, Share2 } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
 import { getCurrentUser, getTeamMembers, getTeamCommissions, formatUGX } from '@/lib/storage';
 import { toast } from 'sonner';
 
@@ -11,7 +10,6 @@ export default function TeamPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // FIXED: Read from Supabase session + local
     let u = getCurrentUser();
     if (!u) {
       try {
@@ -37,7 +35,6 @@ export default function TeamPage() {
   const totalDeposit = 0;
   const totalTeam = level1.length + level2.length + level3.length;
 
-  // FIXED: Add repo name + hash
   const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
   const referralUrl = `${baseUrl}#/register?ref=${currentUser.referralCode}`;
 
@@ -55,8 +52,7 @@ export default function TeamPage() {
   ];
 
   return (
-    <AppLayout>
-      {/* Header */}
+    <div className="pb-2">
       <div className="px-4 pt-4 pb-2">
         <h1 className="text-white text-xl font-black flex items-center gap-2">
           <span className="w-1 h-6 gold-gradient rounded-full inline-block" />
@@ -64,7 +60,6 @@ export default function TeamPage() {
         </h1>
       </div>
 
-      {/* Total Stats */}
       <div className="mx-4 mb-3 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #1a1400, #2a2000)', border: '1px solid rgba(201,168,76,0.3)' }}>
         <div className="flex items-center gap-2 mb-4">
           <Users size={18} className="text-[#c9a84c]" />
@@ -83,7 +78,6 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Share URL */}
       <div className="mx-4 mb-3 rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
         <p className="text-gray-400 text-sm mb-2 font-medium">Share URL</p>
         <div className="flex items-center gap-2 mb-3">
@@ -107,7 +101,6 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Level Cards */}
       <div className="px-4 space-y-2 mb-4">
         {levels.map((lvl, i) => (
           <div key={lvl.level} className="rounded-2xl p-4" style={{
@@ -137,7 +130,6 @@ export default function TeamPage() {
         ))}
       </div>
 
-      {/* Members List */}
       {totalTeam === 0 ? (
         <div className="mx-4 rounded-2xl p-10 text-center" style={{ background: '#151515' }}>
           <Users size={32} className="text-gray-600 mx-auto mb-2" />
@@ -159,6 +151,6 @@ export default function TeamPage() {
         </div>
       )}
       <div className="h-4" />
-    </AppLayout>
+    </div>
   );
-      }
+}
