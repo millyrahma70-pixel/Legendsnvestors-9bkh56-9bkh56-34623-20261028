@@ -1,15 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function WithdrawPage() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
-  
-  const session = localStorage.getItem('legend_session');
-  const user = session ? JSON.parse(session) : null;
-  const bankCard = user ? JSON.parse(localStorage.getItem(`legend_card_${user.id}`) || 'null') : null;
-  
-  if (!user) { navigate('/login'); return null; }
+  const [balance, setBalance] = useState(0);
+  const [card, setCard] = useState<any>(null);
+  const [hasProduct, setHasProduct] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const sStr = localStorage.getItem('legend_session');
+    if (!sStr) { navigate('/login'); return; }
+    const session = JSON.parse(sStr);
+    
+    // BALANCE = bonus 9000 + earnings
+    const bonus = session.user?.user_metadata?.bonus || 9000;
+    let bal = session.balance ?? bonus;
+    if (bal === 0 && bonus) bal = bonus;
+    
+    // Save back
+    session.balance = bal;
+    localStorage.setItem('legend_session', JSON.stringify(session));
+    setBalance(bal);
+    setCard(session.bankCard || null);
+
+    // CHECK IF HAS ACTIVE PRODUCT
+    const uid = session.user?.email || session.user?.phone || 'default';
+    const keys = [`legend_products_${uid}`, `legend_user_products_${uid}`, `legend_purchases_${uid}`, `products_${uid}`];
+    let found: any[] = [];
+    for (const k of keys) {
+      try {
+        const p = JSON.parse(localStorage.getItem(k) || '[]');
+        if (Array.isArray(p) && p.length > 0) { found = p; break; }
+      } catch {}
+    }
+    // Also check global
+    try {
+      const allPurchases = JSON.parse(localStorage.getItem('legend_all_purchases') || '[]');
+      const mine = allPurchases.filter((p: any) => p.userId === uid || p.email === uid);
+      if (mine.length > 0) found = mine;
+    } catch {}
+    
+    setProducts(found);
+    const active = found.some((p: any) => p.status === 'active' || p.status === 'running' || p.active === true);
+    setHasProduct(active);
+  }, []);
 
   const MIN_WITHDRAW = 9000;
   const FEE_RATE = 0.16;
@@ -18,34 +54,44 @@ export default function WithdrawPage() {
   const received = numAmount - fee;
 
   const handleWithdraw = () => {
-    if (!bankCard) { alert('Please bind bank card first'); navigate('/bind-card'); return; }
+    if (!hasProduct) {
+      alert('❌ You must buy a product first!\n\nYour bonus UGX 9,000 is locked until you purchase at least 1 product.\n\nGo to Products page to buy.');
+      navigate('/product');
+      return;
+    }
+    if (!card) { alert('Bind bank card first'); navigate('/bind-card'); return; }
     if (numAmount < MIN_WITHDRAW) { alert(`Minimum is UGX ${MIN_WITHDRAW.toLocaleString()}`); return; }
-    if (numAmount > user.balance) { alert('Insufficient balance'); return; }
+    if (numAmount > balance) { alert('Insufficient balance'); return; }
+    
+    const sStr = localStorage.getItem('legend_session');
+    const session = JSON.parse(sStr!);
+    const uid = session.user?.email || 'default';
     
     const order = {
       id: 'W' + Date.now(),
-      userId: user.id,
+      userId: uid,
       amount: numAmount,
       fee,
       receivedAmount: received,
       status: 'pending',
-      bankCard,
-      createdAt: new Date().toISOString()
+      bankCard: card,
+      createdAt: new Date().toISOString(),
+      arrivalNote: 'Funds arrive in 1-24 hours'
     };
     
-    const orders = JSON.parse(localStorage.getItem(`legend_withdraw_${user.id}`) || '[]');
+    const orders = JSON.parse(localStorage.getItem(`legend_withdraw_${uid}`) || '[]');
     orders.unshift(order);
-    localStorage.setItem(`legend_withdraw_${user.id}`, JSON.stringify(orders));
+    localStorage.setItem(`legend_withdraw_${uid}`, JSON.stringify(orders));
     
-    // Deduct balance
-    const newBal = user.balance - numAmount;
-    const updated = { ...user, balance: newBal };
-    localStorage.setItem('legend_session', JSON.stringify(updated));
-    const users = JSON.parse(localStorage.getItem('legend_users') || '[]');
-    const idx = users.findIndex((u: any) => u.id === user.id);
-    if (idx >= 0) { users[idx].balance = newBal; localStorage.setItem('legend_users', JSON.stringify(users)); }
+    const newBal = balance - numAmount;
+    session.balance = newBal;
+    if (session.user?.user_metadata?.bonus) {
+      session.user.user_metadata.bonus = Math.max(0, session.user.user_metadata.bonus - numAmount);
+    }
+    localStorage.setItem('legend_session', JSON.stringify(session));
+    setBalance(newBal);
     
-    alert('Withdrawal submitted! 4-24 hours');
+    alert(`✅ Withdrawal Submitted!\nAmount: UGX ${numAmount.toLocaleString()}\nFee (16%): UGX ${fee.toLocaleString()}\nYou Receive: UGX ${received.toLocaleString()}\n\n💰 Will arrive in 1-24 hours to:\n${card.bank} - ${card.accountNumber}`);
     navigate('/withdraw-status');
   };
 
@@ -60,38 +106,35 @@ export default function WithdrawPage() {
       <div style={{ padding: '16px' }}>
         <div style={{ background: '#151515', border: '1px solid #222', borderRadius: 18, padding: 20 }}>
           <p style={{ color: '#888', fontSize: 13 }}>Current balance</p>
-          <p style={{ fontSize: 28, fontWeight: 900, marginTop: 4 }}>UGX {user.balance?.toLocaleString() || 0}</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 4, color: '#c9a84c' }}>UGX {balance.toLocaleString()}</p>
+          <p style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Includes bonus UGX 9,000 + all earnings</p>
+
+          {/* PRODUCT LOCK WARNING */}
+          {!hasProduct && (
+            <div style={{ marginTop: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: 12 }}>
+              <p style={{ color: '#ef4444', fontSize: 12, fontWeight: 700 }}>🔒 Withdrawal Locked</p>
+              <p style={{ color: '#fca5a5', fontSize: 11, marginTop: 4 }}>You must purchase a product first to unlock your UGX 9,000 bonus withdrawal. Every amount earned will be added to your account after product purchase.</p>
+              <button onClick={() => navigate('/product')} style={{ marginTop: 8, background: '#ef4444', color: 'white', border: 'none', padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Buy Product Now →</button>
+            </div>
+          )}
+
+          {hasProduct && (
+            <div style={{ marginTop: 12, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, padding: 10 }}>
+              <p style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>✓ Product Active - Withdrawal Unlocked</p>
+              <p style={{ color: '#86efac', fontSize: 10, marginTop: 2 }}>{products.length} product(s) active</p>
+            </div>
+          )}
 
           <div style={{ marginTop: 20 }}>
             <p style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>Bank card</p>
-            <button onClick={() => navigate('/bind-card')} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', background: '#1e1e1e', border: '1px solid #333', borderRadius: 12, padding: '12px 16px', color: bankCard ? '#ddd' : '#666' }}>
-              <span>{bankCard ? `${bankCard.bank} - ${bankCard.accountNumber}` : '______ - ____________'}</span>
-              <span>›</span>
+            <button onClick={() => navigate('/bind-card')} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', background: '#1e1e1e', border: '1px solid #333', borderRadius: 12, padding: '12px 16px', color: card ? '#ddd' : '#666' }}>
+              <span>{card ? `${card.bank} - ${card.accountNumber}` : 'Bind MTN/Airtel card'}</span><span>›</span>
             </button>
           </div>
 
           <div style={{ marginTop: 20 }}>
             <p style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>Withdrawal amount</p>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#1e1e1e', border: '1px solid #333', borderRadius: 12, padding: '12px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#1e1e1e', border: hasProduct ? '1px solid #333' : '1px solid #331111', borderRadius: 12, padding: '12px 16px', opacity: hasProduct ? 1 : 0.6 }}>
               <span style={{ color: '#c9a84c', fontWeight: 700, marginRight: 8 }}>UGX</span>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#666', marginTop: 8 }}>
-              <span>Received: <b style={{ color: 'white' }}>UGX {received > 0 ? received.toLocaleString() : 0}</b></span>
-              <span>Fee: <b style={{ color: 'white' }}>16%</b></span>
-            </div>
-          </div>
-
-          <button onClick={handleWithdraw} style={{ width: '100%', marginTop: 20, background: 'linear-gradient(135deg, #c9a84c, #f0c040)', color: 'black', border: 'none', padding: 16, borderRadius: 12, fontWeight: 900, fontSize: 16 }}>Confirm</button>
-        </div>
-
-        <div style={{ background: '#151515', border: '1px solid #222', borderRadius: 18, padding: 16, marginTop: 12, fontSize: 12, color: '#666', lineHeight: '18px' }}>
-          <p>1. Minimum is <b style={{ color: '#c9a84c' }}>UGX 50,000</b></p>
-          <p>2. Fee is 16% of amount</p>
-          <p>3. Funds arrive in 4-24 hours</p>
-          <p>4. Need active product to withdraw</p>
-        </div>
-      </div>
-    </div>
-  );
-                   }
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={hasProduct ? "Min 9000" : "Locked - Buy product"} disabled={!hasProduct} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'white' }} />
+    </
