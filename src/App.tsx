@@ -12,9 +12,8 @@ const CloudUserPage = lazy(() => import('@/pages/CloudUserPage'));
 import AdminAuthProvider from '@/components/features/AdminAuthProvider';
 import AdminAccessGate from '@/components/features/AdminAccessGate';
 import AdminErrorBoundary from '@/components/features/AdminErrorBoundary';
-import RegistrationSync from '@/components/features/RegistrationSync';
+// import RegistrationSync from '@/components/features/RegistrationSync'; // DISABLED
 
-// FIXED - Import REAL pages, not CloudUserPage
 const ProductPage = lazy(() => import('@/pages/ProductPage'));
 const MinePage = lazy(() => import('@/pages/MinePage'));
 const TaskCenterPage = lazy(() => import('@/pages/TaskCenterPage'));
@@ -30,7 +29,6 @@ const CheckInPage = lazy(() => import('@/pages/CheckInPage'));
 const InvitePage = lazy(() => import('@/pages/InvitePage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const RechargeStatusPage = lazy(() => import('@/pages/RechargeStatusPage'));
-
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 const AdminRecoveryPage = lazy(() => import('@/pages/AdminRecoveryPage'));
 
@@ -43,15 +41,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HashRouter>
-        <RegistrationSync />
-        <Suspense fallback={<div role="status" className="min-h-screen grid place-items-center bg-background text-foreground">Loading...</div>}>
+        {/* <RegistrationSync /> DISABLED - was causing white screen */}
+        <Suspense fallback={<div className="min-h-screen grid place-items-center bg-background text-foreground">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/home" element={<CloudUserPage />} />
-          
-          {/* FIXED ROUTES - REAL PAGES NOW */}
           <Route path="/product" element={<ProductPage />} />
           <Route path="/products" element={<ProductPage />} />
           <Route path="/team" element={<InvitePage />} />
@@ -77,7 +73,6 @@ const App = () => (
           <Route path="/withdraw-status" element={<RecordsPage />} />
           <Route path="/recharge-status" element={<RechargeStatusPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/admin/recovery" element={<AdminErrorBoundary><AdminRecoveryPage /></AdminErrorBoundary>} />
           <Route path="/admin" element={<AdminErrorBoundary><AdminAccessGate><AdminPage /></AdminAccessGate></AdminErrorBoundary>} />
