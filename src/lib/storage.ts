@@ -44,6 +44,20 @@ function generateReferralCode(): string {
 const ADMIN_PHONE = '0746085840';
 const ADMIN_PASSWORD = 'milly@2323';
 
+function safeArrayParse(key: string): any[] {
+  try {
+    const data = localStorage.getItem(key);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') {
+      // If it's an object, try to recover
+      return Object.values(parsed).filter(v => v && typeof v === 'object');
+    }
+    return [];
+  } catch { return []; }
+}
+
 function initAdmin() {
   const users = getUsers();
   const adminIdx = users.findIndex(u => u.isAdmin);
@@ -62,7 +76,6 @@ function initAdmin() {
     };
     saveUsers([...users, admin]);
   } else {
-    // Migrate old credentials to new ones
     if (users[adminIdx].phone !== ADMIN_PHONE || users[adminIdx].password !== ADMIN_PASSWORD) {
       users[adminIdx].phone = ADMIN_PHONE;
       users[adminIdx].password = ADMIN_PASSWORD;
@@ -72,14 +85,11 @@ function initAdmin() {
 }
 
 export function getUsers(): User[] {
-  try {
-    const data = localStorage.getItem(KEYS.USERS);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
+  return safeArrayParse(KEYS.USERS);
 }
 
 export function saveUsers(users: User[]): void {
-  localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+  localStorage.setItem(KEYS.USERS, JSON.stringify(Array.isArray(users) ? users : []));
 }
 
 export function getCurrentUser(): User | null {
@@ -143,7 +153,6 @@ export function registerUser(phone: string, password: string, referralCode?: str
     description: 'Registration bonus reward',
   });
   setCurrentUser(newUser.id);
-  // Send only a joining report through the application sync hook; passwords stay local.
   window.dispatchEvent(new Event('legend-registration-created'));
   return { success: true, message: 'Registration successful', user: newUser };
 }
@@ -158,11 +167,8 @@ export function loginUser(phone: string, password: string): { success: boolean; 
 }
 
 export function getTransactions(userId?: string): Transaction[] {
-  try {
-    const data = localStorage.getItem(KEYS.TRANSACTIONS);
-    const all: Transaction[] = data ? JSON.parse(data) : [];
-    return userId ? all.filter(t => t.userId === userId) : all;
-  } catch { return []; }
+  const all = safeArrayParse(KEYS.TRANSACTIONS) as Transaction[];
+  return userId ? all.filter(t => t.userId === userId) : all;
 }
 
 export function addTransaction(tx: Omit<Transaction, 'id' | 'createdAt'>): Transaction {
@@ -177,11 +183,8 @@ export function addTransaction(tx: Omit<Transaction, 'id' | 'createdAt'>): Trans
 }
 
 export function getRechargeOrders(userId?: string): RechargeOrder[] {
-  try {
-    const data = localStorage.getItem(KEYS.RECHARGE_ORDERS);
-    const all: RechargeOrder[] = data ? JSON.parse(data) : [];
-    return userId ? all.filter(o => o.userId === userId) : all;
-  } catch { return []; }
+  const all = safeArrayParse(KEYS.RECHARGE_ORDERS) as RechargeOrder[];
+  return userId ? all.filter(o => o.userId === userId) : all;
 }
 
 export function createRechargeOrder(userId: string, amount: number, paymentMethod: string, phoneNumber: string): RechargeOrder {
@@ -252,11 +255,8 @@ export function rejectRechargeOrder(orderId: string): boolean {
 }
 
 export function getWithdrawOrders(userId?: string): WithdrawOrder[] {
-  try {
-    const data = localStorage.getItem(KEYS.WITHDRAW_ORDERS);
-    const all: WithdrawOrder[] = data ? JSON.parse(data) : [];
-    return userId ? all.filter(o => o.userId === userId) : all;
-  } catch { return []; }
+  const all = safeArrayParse(KEYS.WITHDRAW_ORDERS) as WithdrawOrder[];
+  return userId ? all.filter(o => o.userId === userId) : all;
 }
 
 export function createWithdrawOrder(userId: string, amount: number): { success: boolean; message: string; order?: WithdrawOrder } {
@@ -306,16 +306,13 @@ export function creditDailyIncome(userId: string): { credited: number; nextPayou
   if (!user) return { credited: 0, nextPayoutMs: 0 };
   const products = getUserProducts(userId).filter(p => p.status === 'active');
   if (products.length === 0) return { credited: 0, nextPayoutMs: 0 };
-
   const INCOME_KEY = `legend_last_income_${userId}`;
   const lastCreditStr = localStorage.getItem(INCOME_KEY);
   const lastCredit = lastCreditStr ? parseInt(lastCreditStr) : 0;
   const now = Date.now();
   const INTERVAL_MS = 24 * 60 * 60 * 1000;
   const nextPayoutMs = lastCredit + INTERVAL_MS - now;
-
   if (nextPayoutMs > 0) return { credited: 0, nextPayoutMs };
-
   let totalIncome = 0;
   for (const up of products) {
     const productDef = PRODUCTS.find(p => p.id === up.productId);
@@ -354,11 +351,8 @@ export function rejectWithdrawOrder(orderId: string): boolean {
 }
 
 export function getUserProducts(userId?: string): UserProduct[] {
-  try {
-    const data = localStorage.getItem(KEYS.USER_PRODUCTS);
-    const all: UserProduct[] = data ? JSON.parse(data) : [];
-    return userId ? all.filter(p => p.userId === userId) : all;
-  } catch { return []; }
+  const all = safeArrayParse(KEYS.USER_PRODUCTS) as UserProduct[];
+  return userId ? all.filter(p => p.userId === userId) : all;
 }
 
 export function purchaseProduct(userId: string, productId: number, price: number, dailyIncome: number, term: number): { success: boolean; message: string } {
@@ -413,32 +407,37 @@ export function performCheckIn(userId: string): { success: boolean; message: str
 }
 
 export function getTeamMembers(userId: string): { level1: User[]; level2: User[]; level3: User[] } {
-  const users = getUsers();
-  const level1 = users.filter(u => u.referredBy === userId);
-  const level2 = users.filter(u => level1.some(l1 => l1.id === u.referredBy));
-  const level3 = users.filter(u => level2.some(l2 => l2.id === u.referredBy));
-  return { level1, level2, level3 };
+  try {
+    const users = getUsers();
+    if (!Array.isArray(users)) return { level1: [], level2: [], level3: [] };
+    const level1 = users.filter(u => u?.referredBy === userId);
+    const level2 = users.filter(u => level1.some(l1 => l1?.id === u?.referredBy));
+    const level3 = users.filter(u => level2.some(l2 => l2?.id === u?.referredBy));
+    return { level1, level2, level3 };
+  } catch {
+    return { level1: [], level2: [], level3: [] };
+  }
 }
 
 export function getTeamCommissions(userId: string): { level1: number; level2: number; level3: number } {
-  const txs = getTransactions(userId).filter(t => t.type === 'referral');
-  return {
-    level1: txs.filter(t => t.description.includes('Level 1')).reduce((sum, t) => sum + t.amount, 0),
-    level2: txs.filter(t => t.description.includes('Level 2')).reduce((sum, t) => sum + t.amount, 0),
-    level3: txs.filter(t => t.description.includes('Level 3')).reduce((sum, t) => sum + t.amount, 0),
-  };
+  try {
+    const txs = getTransactions(userId).filter(t => t.type === 'referral');
+    return {
+      level1: txs.filter(t => t.description.includes('Level 1')).reduce((sum, t) => sum + t.amount, 0),
+      level2: txs.filter(t => t.description.includes('Level 2')).reduce((sum, t) => sum + t.amount, 0),
+      level3: txs.filter(t => t.description.includes('Level 3')).reduce((sum, t) => sum + t.amount, 0),
+    };
+  } catch {
+    return { level1: 0, level2: 0, level3: 0 };
+  }
 }
 
 export function getGiftCodes(): GiftCode[] {
-  try {
-    const data = localStorage.getItem(KEYS.GIFT_CODES);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
+  return safeArrayParse(KEYS.GIFT_CODES) as GiftCode[];
 }
 
 export function createGiftCode(amount: number, note?: string, customCode?: string): GiftCode {
   const codes = getGiftCodes();
-  // Auto-expire 30 minutes after creation
   const expiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const code: GiftCode = {
     id: generateId(),
@@ -458,10 +457,7 @@ export function deleteGiftCode(codeId: string): void {
 }
 
 export function getPasswordResets(): PasswordResetRequest[] {
-  try {
-    const data = localStorage.getItem(KEYS.PASSWORD_RESETS);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
+  return safeArrayParse(KEYS.PASSWORD_RESETS) as PasswordResetRequest[];
 }
 
 export function createPasswordReset(phone: string, newPassword: string): { success: boolean; message: string } {
@@ -469,7 +465,6 @@ export function createPasswordReset(phone: string, newPassword: string): { succe
   const user = users.find(u => u.phone === phone && !u.isAdmin);
   if (!user) return { success: false, message: 'No account found with this phone number' };
   const resets = getPasswordResets();
-  // Check for existing pending request from same phone
   const existing = resets.find(r => r.phone === phone && r.status === 'pending');
   if (existing) return { success: false, message: 'A reset request is already pending for this account' };
   const req: PasswordResetRequest = {
@@ -485,7 +480,6 @@ export function createPasswordReset(phone: string, newPassword: string): { succe
 
 export function getPasswordResetStatus(phone: string): PasswordResetRequest | null {
   const resets = getPasswordResets();
-  // Return the latest request for this phone
   return resets.find(r => r.phone === phone) || null;
 }
 
@@ -495,7 +489,6 @@ export function approvePasswordReset(resetId: string): boolean {
   if (idx === -1) return false;
   const req = resets[idx];
   if (req.status !== 'pending') return false;
-  // Apply the new password
   const users = getUsers();
   const uIdx = users.findIndex(u => u.phone === req.phone);
   if (uIdx !== -1) {
