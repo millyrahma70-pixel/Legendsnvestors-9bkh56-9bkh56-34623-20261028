@@ -1,68 +1,68 @@
+import { ChevronLeft, Shield, TrendingUp, Globe, Lock, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PRODUCTS, formatUGX } from '@/constants/products';
+
 export default function RegulationPage() {
-  const products = [
-    { vip:1, price:'30K', daily:'5K', total:'270K', days:'60d' },
-    { vip:2, price:'42K', daily:'9K', total:'540K', days:'60d' },
-    { vip:3, price:'75K', daily:'18K', total:'1080K', days:'60d' },
-    { vip:4, price:'150K', daily:'38K', total:'2280K', days:'60d' },
-    { vip:5, price:'300K', daily:'80K', total:'4800K', days:'60d' },
-    { vip:6, price:'600K', daily:'168K', total:'10080K', days:'60d' },
-    { vip:7, price:'1.2M', daily:'350K', total:'21000K', days:'60d' },
-  ];
+  const navigate = useNavigate();
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0a0a0a', color:'white' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'#111', borderBottom:'1px solid #222' }}>
-        <button onClick={()=>history.back()} style={{ width:32, height:32, borderRadius:10, background:'#1e1e1e', border:'none', color:'#999' }}>‹</button>
-        <h1 style={{ fontWeight:700, fontSize:18 }}>Regulation</h1>
-      </div>
-
-      <div style={{ padding:20, display:'flex', gap:16, background:'linear-gradient(135deg, #0f0f0a, #1a1400)', borderBottom:'1px solid #222' }}>
-        <div style={{ flex:1 }}>
-          <h2 style={{ fontSize:24, fontWeight:900, lineHeight:1.1 }}>LEGEND<br/><span style={{ color:'#c9a84c' }}>ONE BMW</span></h2>
-          <p style={{ color:'#888', fontSize:14, marginTop:6, fontStyle:'italic' }}>Invest in the Future</p>
-          <p style={{ color:'#c9a84c', fontWeight:700, fontSize:14 }}>Earn Every Day</p>
-          <p style={{ color:'#555', fontSize:11, marginTop:6 }}>Your Smart Choice for Long-Term Passive Income</p>
-        </div>
-        <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=120&h=120&fit=crop" alt="BMW" style={{ width:110, height:110, borderRadius:12, objectFit:'cover', border:'1px solid rgba(201,168,76,0.3)' }} />
-      </div>
-
-      <div style={{ padding:'16px' }}>
-        <div style={{ borderRadius:16, overflow:'hidden', border:'1px solid #222' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr', background:'linear-gradient(135deg, #c9a84c, #f0c040)', padding:'10px 0', textAlign:'center', fontWeight:800, fontSize:12, color:'#000' }}>
-            <div>Product</div><div>Price</div><div>Daily</div><div>Total</div><div>Days</div>
+    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
+      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
+          <ChevronLeft size={18} className="text-gray-400" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            <div className="w-4 h-0.5 gold-gradient rounded-full" />
+            <div className="w-4 h-0.5 gold-gradient rounded-full" />
+            <div className="w-4 h-0.5 gold-gradient rounded-full" />
           </div>
-          {products.map((p,i) => (
-            <div key={p.vip} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr', background: i%2===0 ? '#151515' : '#111', borderTop:'1px solid #222', padding:'10px 0', textAlign:'center', fontSize:12 }}>
-              <div><span style={{ background:'#c9a84c', color:'#000', fontSize:9, fontWeight:800, padding:'2px 6px', borderRadius:4 }}>VIP{p.vip}</span></div>
-              <div style={{ color:'#aaa' }}>{p.price}</div>
-              <div style={{ color:'#c9a84c', fontWeight:700 }}>{p.daily}</div>
-              <div style={{ color:'#aaa' }}>{p.total}</div>
-              <div style={{ color:'#666' }}>{p.days}</div>
+          <h1 className="text-white font-bold text-lg">Regulation</h1>
+        </div>
+      </div>
+
+      <div className="p-5 flex gap-4" style={{ background: 'linear-gradient(135deg, #0f0f0a, #1a1400)' }}>
+        <div className="flex-1 text-white">
+          <h2 className="text-2xl font-black leading-tight text-white">LEGEND<br /><span className="text-[#c9a84c]">ONE BMW</span></h2>
+          <p className="text-gray-400 text-sm mt-1 italic">Invest in the Future</p>
+          <p className="text-[#c9a84c] font-semibold">Earn Every Day</p>
+          <p className="text-gray-600 text-xs mt-1">Your Smart Choice for Long-Term Passive Income</p>
+        </div>
+        <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=120&h=120&fit=crop" alt="BMW" className="w-28 h-28 rounded-xl object-cover" style={{ border: '1px solid rgba(201,168,76,0.3)' }} />
+      </div>
+
+      <div className="px-4 mt-4">
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #2a2a2a' }}>
+          <div className="grid grid-cols-5 text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #c9a84c, #f0c040)' }}>
+            {['Product', 'Price', 'Daily', 'Total', 'Days'].map(h => (
+              <div key={h} className="py-2.5 px-1 text-center text-black font-bold">{h}</div>
+            ))}
+          </div>
+          {PRODUCTS.map((p, i) => (
+            <div key={p.id} className="grid grid-cols-5 text-xs" style={{ background: i % 2 === 0 ? '#151515' : '#111111', borderTop: '1px solid #222' }}>
+              <div className="py-2 px-1 text-center"><span className="text-[9px] font-bold text-black px-1 py-0.5 rounded gold-gradient">VIP{p.vip}</span></div>
+              <div className="py-2 px-1 text-center text-gray-400">{(p.price/1000).toFixed(0)}K</div>
+              <div className="py-2 px-1 text-center text-[#c9a84c] font-semibold">{(p.dailyIncome/1000).toFixed(0)}K</div>
+              <div className="py-2 px-1 text-center text-gray-400">{(p.totalIncome/1000).toFixed(0)}K</div>
+              <div className="py-2 px-1 text-center text-gray-600">{p.term}d</div>
             </div>
           ))}
         </div>
+      </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr', gap:8, marginTop:16, textAlign:'center' }}>
-          {[
-            { label:'Secure' }, { label:'Daily' }, { label:'Stable' }, { label:'Global' }, { label:'Together' }
-          ].map(f => (
-            <div key={f.label}>
-              <div style={{ width:40, height:40, margin:'0 auto', borderRadius:10, background:'rgba(201,168,76,0.1)', border:'1px solid rgba(201,168,76,0.2)', display:'flex', alignItems:'center', justifyContent:'center', color:'#c9a84c', fontSize:14 }}>✓</div>
-              <div style={{ fontSize:9, color:'#666', marginTop:4 }}>{f.label}</div>
-            </div>
-          ))}
-        </div>
+      <div className="px-4 mt-4 grid grid-cols-5 gap-2 text-center">
+        {[{ icon: Shield, label: 'Secure' }, { icon: TrendingUp, label: 'Daily' }, { icon: Lock, label: 'Stable' }, { icon: Globe, label: 'Global' }, { icon: Users, label: 'Together' },].map(item => { const Icon = item.icon; return (<div key={item.label} className="flex flex-col items-center gap-1"><div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)' }}><Icon size={16} className="text-[#c9a84c]" /></div><p className="text-[9px] text-gray-500 font-medium">{item.label}</p></div>); })}
+      </div>
 
-        <div style={{ textAlign:'center', color:'#c9a84c', fontWeight:700, marginTop:16, fontSize:13 }}>Legend One BMW — More Than a Product, It's a Future!</div>
+      <p className="text-center text-[#c9a84c] font-semibold text-sm mt-4 px-4">Legend One BMW — More Than a Product, It's a Future!</p>
 
-        <div style={{ marginTop:16, fontSize:13, color:'#888', lineHeight:'22px', background:'#111', border:'1px solid #222', borderRadius:12, padding:14 }}>
-          <p>When a friend you invite registers and invests, you will immediately receive a cash reward equal to <b style={{ color:'#c9a84c' }}>27%</b> of their investment.</p>
-          <p style={{ marginTop:8 }}>When a Level 2 team member invests, you will receive a <b style={{ color:'#c9a84c' }}>2%</b> cash reward.</p>
-          <p style={{ marginTop:8 }}>When a Level 3 team member invests, you will receive a <b style={{ color:'#c9a84c' }}>1%</b> cash reward.</p>
-          <p style={{ marginTop:8 }}>Register to receive a <b style={{ color:'#c9a84c' }}>9,000 UGX</b> bonus. Minimum deposit is <b style={{ color:'#c9a84c' }}>30,000 UGX</b> and minimum withdrawal is <b style={{ color:'#c9a84c' }}>9,000 UGX</b>. Fee is 16%.</p>
-          <p style={{ marginTop:8 }}>Each product runs for 60 days. Income settled every 24 hours. Funds arrive in 1-24h.</p>
-        </div>
+      <div className="px-4 mt-4 mb-6 space-y-2 text-sm text-gray-500 leading-relaxed">
+        <p>When a friend you invite registers and invests, you will immediately receive a cash reward equal to <strong className="text-[#c9a84c]">27%</strong> of their investment amount.</p>
+        <p>When a Level 2 team member invests, you will receive a <strong className="text-[#c9a84c]">2%</strong> cash reward.</p>
+        <p>When a Level 3 team member invests, you will receive a <strong className="text-[#c9a84c]">1%</strong> cash reward.</p>
+        <p>Register to receive a <strong className="text-[#c9a84c]">9,000 UGX</strong> bonus. Minimum deposit is <strong className="text-[#c9a84c]">30,000 UGX</strong> (covers VIP 1 entry product) and minimum withdrawal is <strong className="text-[#c9a84c]">9,000 UGX</strong>. The withdrawal fee is 16%.</p>
+        <p>Each product runs for 60 days. Income is settled every 24 hours.</p>
       </div>
     </div>
   );
-              }
+          }
