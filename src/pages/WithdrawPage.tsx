@@ -1,103 +1,137 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ArrowDownToLine, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { getCurrentUser, createWithdrawOrder, formatUGX, getUserProducts } from '@/lib/storage';
+import type { UserProduct } from '@/types';
+import { MIN_WITHDRAWAL, WITHDRAWAL_FEE_RATE } from '@/constants/products';
 
 export default function WithdrawPage() {
-  const nav = useNavigate();
-  const [bal, setBal] = useState(9000);
-  const [amt, setAmt] = useState('');
-  const [card, setCard] = useState<any>(null);
-  const [hasProd, setHasProd] = useState(false);
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [amount, setAmount] = useState('');
 
   useEffect(() => {
-    const s = localStorage.getItem('legend_session');
-    if (!s) return;
-    const j = JSON.parse(s);
-    const b = j.user?.user_metadata?.bonus || j.balance || 9000;
-    setBal(j.balance || b);
-    setCard(j.bankCard || null);
-    const uid = j.user?.email || 'default';
-    const p = JSON.parse(localStorage.getItem(`legend_products_${uid}`) || '[]');
-    const all = JSON.parse(localStorage.getItem('legend_all_purchases') || '[]');
-    const mine = all.filter((x: any) => x.userId === uid);
-    setHasProd(p.length > 0 || mine.length > 0);
-  }, []);
+    let u = getCurrentUser();
+    if (!u) {
+      try {
+        const sess = JSON.parse(localStorage.getItem('legend_session') || 'null');
+        const curr = JSON.parse(localStorage.getItem('legend_current_user') || localStorage.getItem('currentUser') || 'null');
+        u = curr || (sess?.user ? {
+          id: sess.user.id || sess.user.email,
+          phone: sess.user.user_metadata?.phone,
+          email: sess.user.email,
+          balance: 9000,
+          bankCard: null,
+          referralCode: sess.user.user_metadata?.referral_code || 'LGDEMO',
+          ...sess.user.user_metadata
+        } : null);
+        if (u && !u.id) u.id = u.email || u.phone;
+        // merge with stored full user if exists
+        if (u) {
+          try {
+            const all = JSON.parse(localStorage.getItem('legend_users_db') || localStorage.getItem('users') || '{}');
+            const found = Object.values(all).find((x:any) => x.id === u.id || x.email === u.email) as any;
+            if (found) u = { ...found, ...u, balance: found.balance ?? u.balance ?? 9000, bankCard: found.bankCard ?? u.bankCard };
+          } catch {}
+        }
+      } catch {}
+    }
+    if (!u) { navigate('/login'); return; }
+    setCurrentUser(u);
+  }, [navigate]);
 
-  const MIN = 9000;
-  const n = parseInt(amt) || 0;
-  const fee = Math.floor(n * 0.16);
-  const recv = n - fee;
+  if (!currentUser) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'grid',placeItems:'center',color:'#c9a84c'}}>Loading...</div>;
 
-  const submit = () => {
-    if (!hasProd) {
-      alert('Buy a product first to unlock withdrawal');
-      nav('/product');
-      return;
-    }
-    if (!card) {
-      alert('Bind card first');
-      nav('/bind-card');
-      return;
-    }
-    if (n < MIN) {
-      alert(`Min is ${MIN}`);
-      return;
-    }
-    if (n > bal) {
-      alert('Low balance');
-      return;
-    }
-    const s = localStorage.getItem('legend_session');
-    const j = JSON.parse(s!);
-    const uid = j.user?.email || 'default';
-    const order = {
-      id: 'W' + Date.now(),
-      amount: n,
-      fee,
-      recv,
-      status: 'pending',
-      card,
-      createdAt: new Date().toISOString(),
-    };
-    const list = JSON.parse(localStorage.getItem(`legend_withdraw_${uid}`) || '[]');
-    list.unshift(order);
-    localStorage.setItem(`legend_withdraw_${uid}`, JSON.stringify(list));
-    j.balance = bal - n;
-    if (j.user?.user_metadata) j.user.user_metadata.bonus = Math.max(0, (j.user.user_metadata.bonus || 9000) - n);
-    localStorage.setItem('legend_session', JSON.stringify(j));
-    alert(`Success! You receive UGX ${recv} in 1-24h to ${card.bank}`);
-    nav('/withdraw-status');
+  const userProducts = getUserProducts(currentUser.id);
+  const hasActiveProduct = userProducts.some((p: UserProduct) => p.status === 'active');
+
+  const numAmount = parseInt(amount) || 0;
+  const fee = Math.floor(numAmount * WITHDRAWAL_FEE_RATE);
+  const received = numAmount - fee;
+
+  const handleWithdraw = () => {
+    if (!hasActiveProduct) { toast.error('You need at least one active product to withdraw'); navigate('/product'); return; }
+    if (!currentUser.bankCard) { toast.error('Please bind your bank card first'); navigate('/bind-card'); return; }
+    if (numAmount < MIN_WITHDRAWAL) { toast.error(`Minimum withdrawal is ${formatUGX(MIN_WITHDRAWAL)}`); return; }
+    if (numAmount > currentUser.balance) { toast.error('Insufficient balance'); return; }
+    const result = createWithdrawOrder(currentUser.id, numAmount);
+    if (result.success) { toast.success('Withdrawal submitted successfully!'); navigate('/records'); }
+    else { toast.error(result.message); }
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: 'white', padding: 16 }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-        <button onClick={() => nav(-1)} style={{ width: 32, height: 32, borderRadius: 8, background: '#222', border: 'none', color: '#fff' }}>‹</button>
-        <h1>Withdrawal</h1>
+    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
+      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
+          <ChevronLeft size={18} className="text-gray-400" />
+        </button>
+        <h1 className="text-white font-bold text-lg flex-1">Withdrawal</h1>
+        <button onClick={() => navigate('/withdraw-status')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+          style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', color: '#c9a84c' }}>
+          <Activity size={13} /> History
+        </button>
       </div>
-      <div style={{ background: '#151515', border: '1px solid #222', borderRadius: 16, padding: 20 }}>
-        <p style={{ color: '#888', fontSize: 13 }}>Balance</p>
-        <p style={{ fontSize: 28, fontWeight: 800, color: '#c9a84c' }}>UGX {bal.toLocaleString()}</p>
-        {!hasProd && (
-          <div style={{ marginTop: 12, background: '#331111', padding: 12, borderRadius: 10 }}>
-            <p style={{ color: '#ef4444', fontSize: 12, fontWeight: 700 }}>🔒 Locked - Buy product first</p>
-            <button onClick={() => nav('/product')} style={{ marginTop: 8, background: '#ef4444', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 12 }}>Buy Product</button>
+
+      <div className="px-4 mt-4 space-y-4">
+        <div className="rounded-2xl p-5" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
+          <div className="mb-5">
+            <p className="text-gray-500 text-sm">Current balance</p>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-col gap-0.5">
+                <div className="w-5 h-0.5 gold-gradient rounded-full" />
+                <div className="w-5 h-0.5 gold-gradient rounded-full" />
+                <div className="w-5 h-0.5 gold-gradient rounded-full" />
+              </div>
+              <p className="text-3xl font-black text-white">{formatUGX(currentUser.balance)}</p>
+            </div>
           </div>
-        )}
-        {hasProd && <p style={{ color: '#22c55e', fontSize: 11, marginTop: 8 }}>✓ Product active - Unlocked</p>}
-        <p style={{ marginTop: 16, color: '#888', fontSize: 12 }}>Bank Card</p>
-        <button onClick={() => nav('/bind-card')} style={{ width: '100%', marginTop: 6, padding: 12, borderRadius: 10, background: '#1e1e1e', border: '1px solid #333', color: card ? '#fff' : '#666', textAlign: 'left' }}>
-          {card ? `${card.bank} - ${card.accountNumber}` : 'Bind card'}
-        </button>
-        <p style={{ marginTop: 16, color: '#888', fontSize: 12 }}>Amount (Min 9000)</p>
-        <div style={{ display: 'flex', gap: 8, marginTop: 6, background: '#1e1e1e', border: '1px solid #333', borderRadius: 10, padding: 12 }}>
-          <span style={{ color: '#c9a84c', fontWeight: 700 }}>UGX</span>
-          <input value={amt} onChange={e => setAmt(e.target.value)} type="number" placeholder="9000" disabled={!hasProd} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff' }} />
+
+          <div className="mb-4">
+            <p className="text-gray-500 text-sm mb-2">Please select your bank card</p>
+            <button onClick={() => navigate('/bind-card')}
+              className="w-full flex items-center justify-between rounded-xl px-4 py-3 transition-colors"
+              style={{ background: '#1e1e1e', border: '1.5px solid #333' }}>
+              <div className="flex items-center gap-2 text-gray-500">
+                <ArrowDownToLine size={16} className="text-[#c9a84c]" />
+                {currentUser.bankCard ? (
+                  <span className="text-gray-300 font-medium text-sm">{currentUser.bankCard.bank} - {currentUser.bankCard.accountNumber}</span>
+                ) : (
+                  <span className="text-gray-600 text-sm">______ - ____________</span>
+                )}
+              </div>
+              <span className="text-gray-600">&gt;</span>
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-gray-500 text-sm mb-2">Withdrawal amount</p>
+            <div className="flex items-center rounded-xl px-4 py-3.5" style={{ background: '#1e1e1e', border: '1.5px solid #333' }}>
+              <span className="text-[#c9a84c] font-bold mr-2">UGX</span>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Please enter withdrawal amount"
+                className="flex-1 outline-none text-sm text-white bg-transparent placeholder-gray-600" />
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-gray-600">
+              <span>Received: <strong className="text-white">{formatUGX(received > 0 ? received : 0)}</strong></span>
+              <span>Fee: <strong className="text-white">{(WITHDRAWAL_FEE_RATE * 100).toFixed(0)}%</strong></span>
+            </div>
+          </div>
+
+          <button onClick={handleWithdraw} className="w-full gold-gradient py-4 rounded-xl font-bold text-black text-base">
+            Confirm
+          </button>
         </div>
-        <p style={{ fontSize: 11, color: '#666', marginTop: 8 }}>Receive: UGX {recv > 0 ? recv.toLocaleString() : 0} | Fee 16% | Arrives 1-24h</p>
-        <button onClick={submit} style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, background: hasProd ? '#c9a84c' : '#333', color: hasProd ? '#000' : '#666' }}>
-          {hasProd ? 'Confirm - 1-24h' : '🔒 Buy Product First'}
-        </button>
+
+        <div className="rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
+          <div className="space-y-2 text-sm text-gray-500">
+            <p>1. The minimum withdrawal amount is <strong className="text-[#c9a84c]">{formatUGX(MIN_WITHDRAWAL)}</strong></p>
+            <p>2. The withdrawal fee is {(WITHDRAWAL_FEE_RATE * 100).toFixed(0)}% of the withdrawal amount.</p>
+            <p>3. You can make a withdrawal at any time; funds will be credited within 4 to 24 hours.</p>
+            <p>4. You must have at least one <strong className="text-[#c9a84c]">active product</strong> to enable the withdrawal function.</p>
+          </div>
+        </div>
       </div>
     </div>
   );
-                                                                         }
+      }
