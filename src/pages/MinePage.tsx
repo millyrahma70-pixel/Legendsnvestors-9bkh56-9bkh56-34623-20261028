@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Info, Shield, ListOrdered, Headphones, CreditCard, Gift, LogOut, ChevronRight, CreditCard as RechargeIcon, ArrowDownToLine, Activity, TrendingUp, UserCircle } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
 import { getCurrentUser, setCurrentUser, formatUGX } from '@/lib/storage';
 
 export default function MinePage() {
@@ -48,7 +47,7 @@ export default function MinePage() {
   ];
 
   return (
-    <AppLayout>
+    <div className="pb-2">
       <div className="mx-4 mt-4 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #1a1400, #2a2000)', border: '1px solid rgba(201,168,76,0.3)' }}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(201,168,76,0.15)', border: '2px solid #c9a84c' }}>
@@ -72,6 +71,6 @@ export default function MinePage() {
       </div>
 
       <div className="mx-4 mt-3 mb-4"><button onClick={handleSignOut} className="w-full py-4 rounded-2xl font-bold text-black gold-gradient flex items-center justify-center gap-2"><LogOut size={16} />Sign Out</button></div>
-    </AppLayout>
+    </div>
   );
-     }
+              }
