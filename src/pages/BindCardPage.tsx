@@ -3,40 +3,37 @@ import { useNavigate } from 'react-router-dom';
 
 export default function BindCardPage() {
   const navigate = useNavigate();
-  const [bank, setBank] = useState('MTN');
-  const [holderName, setHolderName] = useState('Nnnn');
-  const [accountNumber, setAccountNumber] = useState('0756406186');
+  
+  const sessionStr = localStorage.getItem('legend_session');
+  const parsed = sessionStr ? JSON.parse(sessionStr) : null;
+  const existing = parsed?.bankCard || null;
+
+  const [bank, setBank] = useState(existing?.bank || 'MTN');
+  const [holderName, setHolderName] = useState(existing?.holderName || parsed?.user?.user_metadata?.full_name || 'John');
+  const [accountNumber, setAccountNumber] = useState(existing?.accountNumber || '07xxxxxxx');
   const [showPicker, setShowPicker] = useState(false);
 
   const handleConfirm = () => {
-    alert(`Clicked! Saving: ${bank} ${holderName} ${accountNumber}`);
-    
     try {
-      const sessionStr = localStorage.getItem('legend_session');
-      if (!sessionStr) { alert('No session! Please login again'); return; }
+      const sStr = localStorage.getItem('legend_session');
+      if (!sStr) { alert('No session, login again'); navigate('/login'); return; }
       
-      const user = JSON.parse(sessionStr);
-      const card = { bank, holderName, accountNumber, savedAt: new Date().toISOString() };
+      const session = JSON.parse(sStr);
       
-      // SAVE
-      localStorage.setItem(`legend_card_${user.id}`, JSON.stringify(card));
-      localStorage.setItem('legend_session', JSON.stringify({ ...user, bankCard: card }));
+      const card = { bank, holderName: holderName.trim(), accountNumber: accountNumber.trim(), savedAt: new Date().toISOString() };
       
-      // Update users array
-      const usersStr = localStorage.getItem('legend_users');
-      if (usersStr) {
-        const users = JSON.parse(usersStr);
-        const idx = users.findIndex((u: any) => u.id === user.id);
-        if (idx >= 0) {
-          users[idx].bankCard = card;
-          localStorage.setItem('legend_users', JSON.stringify(users));
-        }
-      }
+      // Save correctly in your structure: {user, access_token, bankCard}
+      const newSession = { ...session, bankCard: card };
+      localStorage.setItem('legend_session', JSON.stringify(newSession));
       
-      alert(`✅ SAVED SUCCESS!\n${bank} - ${accountNumber}\n\nNow check:\n1. Go to Mine page\n2. You should see card\n3. If not, type this in console:\nlocalStorage.getItem('legend_session')`);
+      // Also save backup key for WithdrawPage
+      const uid = session.user?.email || session.user?.phone || 'default';
+      localStorage.setItem(`legend_card_${uid}`, JSON.stringify(card));
+      
+      alert(`✅ SAVED!\n${bank} - ${accountNumber}\n\nGo to Mine, you will see it now!`);
       navigate('/mine');
-    } catch (e) {
-      alert('Error: ' + e);
+    } catch (e: any) {
+      alert('Save error: ' + e.message);
     }
   };
 
@@ -44,15 +41,17 @@ export default function BindCardPage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0a', color: 'white' }}>
       {showPicker && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 480, background: '#1a1a1a', borderRadius: '24px 24px 0 0' }}>
+          <div style={{ width: '100%', maxWidth: 480, background: '#1a1a1a', borderRadius: '24px 24px 0 0', border: '1px solid #222' }}>
             {['MTN','AIRTEL'].map(b => (
-              <button key={b} onClick={() => { setBank(b); setShowPicker(false); }} style={{ width: '100%', padding: 20, background: 'none', border: 'none', borderBottom: '1px solid #222', color: 'white', fontSize: 16, textAlign: 'left' }}>{b} {bank === b ? '✓' : ''}</button>
+              <button key={b} onClick={() => { setBank(b); setShowPicker(false); }} style={{ width: '100%', padding: 20, background: 'none', border: 'none', borderBottom: '1px solid #222', color: 'white', fontSize: 16, textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}>
+                <span>{b}</span><span>{bank === b ? '✓' : ''}</span>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      <div style={{ padding: '14px 16px', background: '#111', display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ padding: '14px 16px', background: '#111', display: 'flex', gap: 12, alignItems: 'center', borderBottom: '1px solid #222' }}>
         <button onClick={() => navigate(-1)} style={{ width: 32, height: 32, borderRadius: 10, background: '#1e1e1e', border: 'none', color: 'white' }}>‹</button>
         <h1 style={{ fontWeight: 700 }}>Bind Bank Card</h1>
       </div>
@@ -73,14 +72,13 @@ export default function BindCardPage() {
             <label style={{ color: '#c9a84c', fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8 }}>* Bank Account</label>
             <input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} style={{ width: '100%', padding: '14px 16px', borderRadius: 12, background: '#1e1e1e', border: '1px solid #333', color: 'white', outline: 'none' }} />
           </div>
-          <button onClick={handleConfirm} style={{ width: '100%', background: '#e6b800', color: 'black', border: 'none', padding: 16, borderRadius: 12, fontWeight: 900, fontSize: 18 }}>Confirm</button>
-          
-          <button onClick={() => {
-            const s = localStorage.getItem('legend_session');
-            alert(s ? s.slice(0,300) : 'No session');
-          }} style={{ width: '100%', marginTop: 10, background: '#222', color: '#888', border: 'none', padding: 12, borderRadius: 10, fontSize: 12 }}>DEBUG: Show Session</button>
+          <button onClick={handleConfirm} style={{ width: '100%', background: 'linear-gradient(135deg, #c9a84c, #f0c040)', color: 'black', border: 'none', padding: 16, borderRadius: 12, fontWeight: 900, fontSize: 16 }}>Confirm & Save</button>
+        </div>
+
+        <div style={{ marginTop: 12, background: '#111', borderRadius: 12, padding: 12, fontSize: 12, color: '#666' }}>
+          Current: {existing ? `${existing.bank} - ${existing.accountNumber}` : 'No card yet'}
         </div>
       </div>
     </div>
   );
-      }
+}
