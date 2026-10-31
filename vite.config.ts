@@ -3,16 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
-  base: "/", // <-- FIXED for nillyrahma70-pixel.github.io user site
+  base: "/Legendsnvestors-9bkh56-9bkh56-34623-20261028/", // CORRECT for your repo!
   server: { host: "::", port: 8080 },
   plugins: [react()],
-  resolve: { 
-    alias: { 
-      "@": path.resolve(__dirname, "./src") 
-    } 
-  },
-  build: {
-    outDir: "dist",
-    assetsDir: "assets",
-  }
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
 });
