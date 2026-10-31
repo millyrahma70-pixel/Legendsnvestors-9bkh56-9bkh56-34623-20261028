@@ -45,7 +45,7 @@ export default function MinePage(){
         {/* Profile Header - EXACT from your screenshot */}
         <div style={{margin:'0 16px',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'24px',padding:'20px'}}>
           <div style={{color:'#e6a800',fontWeight:700,fontSize:'13px',marginBottom:'10px'}}>Verified Cloud account</div>
-          <div style={{fontSize:'26px',fontWeight:800,letterSpacing:'0.5px'}}>{user.phone||'+256746085840'}</div>
+          <div style={{fontSize:'26px',fontWeight:800,letterSpacing:'0.5px'}}>{user.phone||'+256'}</div>
           <div style={{color:'#888',fontSize:'12px',marginTop:'6px'}}>{user.email||'legendinvestors6@gmail.com'}</div>
           <div style={{color:'#e6a800',fontSize:'34px',fontWeight:900,marginTop:'18px'}}>{formatUGX(user.balance||9000)}</div>
           <div style={{color:'#888',fontSize:'12px',marginTop:'4px'}}>Referral: {user.referralCode||'4B86F10B5A'} · active</div>
