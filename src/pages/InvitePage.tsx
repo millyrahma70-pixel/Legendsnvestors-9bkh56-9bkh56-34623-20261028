@@ -13,7 +13,6 @@ export default function InvitePage() {
   const qrRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    // FIXED: Read from BOTH Supabase session + local storage
     let u = getCurrentUser();
     if (!u) {
       try {
@@ -24,7 +23,7 @@ export default function InvitePage() {
           phone: sess.user.user_metadata?.phone || sess.user.email,
           referralCode: sess.user.user_metadata?.referral_code || sess.user.user_metadata?.ref || sess.user.user_metadata?.referralCode,
           full_name: sess.user.user_metadata?.full_name,
-          email: sess.user.email
+          email: sess.user.email,
         } : null);
       } catch {}
     }
@@ -36,10 +35,9 @@ export default function InvitePage() {
 
   const { level1, level2, level3 } = getTeamMembers(user.id);
   const commissions = getTeamCommissions(user.id);
-  // FIXED: Add repo name + hash for GitHub Pages
   const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
   const referralUrl = `${baseUrl}#/register?ref=${user.referralCode}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(referralUrl)}&color=c9a84c&bgcolor=111111`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(referralUrl)}&color=f0bf47&bgcolor=111111`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralUrl);
@@ -58,162 +56,131 @@ export default function InvitePage() {
   };
 
   const levels = [
-    { level: 1, label: 'Level 1', members: level1.length, rate: '27%', commission: commissions.level1, color: '#c9a84c', desc: 'Direct referral — when they invest' },
-    { level: 2, label: 'Level 2', members: level2.length, rate: '2%', commission: commissions.level2, color: '#a78234', desc: 'Your Level 1\'s referrals' },
-    { level: 3, label: 'Level 3', members: level3.length, rate: '1%', commission: commissions.level3, color: '#7c6128', desc: 'Your Level 2\'s referrals' },
+    { level: 1, label: 'Level 1', members: level1.length, rate: '27%', commission: commissions.level1, color: '#f0bf47', desc: 'Direct referral commission' },
+    { level: 2, label: 'Level 2', members: level2.length, rate: '2%', commission: commissions.level2, color: '#ce9f2d', desc: 'Second generation referral' },
+    { level: 3, label: 'Level 3', members: level3.length, rate: '1%', commission: commissions.level3, color: '#bc8d2d', desc: 'Third generation referral' },
   ];
 
   return (
-    <div className="app-container min-h-screen" style={{ background: '#0a0a0a' }}>
-      <div className="flex items-center gap-3 p-4" style={{ background: '#111111', borderBottom: '1px solid #2a2a2a' }}>
-        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#1e1e1e' }}>
-          <ChevronLeft size={18} className="text-gray-400" />
-        </button>
-        <div className="flex items-center gap-2">
-          <Share2 size={16} className="text-[#c9a84c]" />
-          <h1 className="text-white font-bold text-lg">Invite & Earn</h1>
-        </div>
-      </div>
-
-      <div className="mx-4 mt-4 rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a1100, #2d1f00)', border: '1px solid rgba(201,168,76,0.4)' }}>
-        <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #f0c040, transparent)', transform: 'translate(30%, -30%)' }} />
-        <p className="text-gray-400 text-xs mb-1 uppercase tracking-widest">Legend Investors</p>
-        <h2 className="text-white text-2xl font-black mb-1">Invite Friends</h2>
-        <p className="text-[#c9a84c] font-semibold text-sm mb-3">Earn up to <span className="text-xl font-black">27%</span> commission instantly</p>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Registration Bonus', value: 'UGX 9K' },
-            { label: 'Your Code', value: user.referralCode },
-            { label: 'Level 1 Rate', value: '27%' },
-          ].map(item => (
-            <div key={item.label} className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-              <p className="text-[#c9a84c] font-black text-sm">{item.value}</p>
-              <p className="text-gray-500 text-[9px] mt-0.5">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mx-4 mt-4 rounded-2xl p-5" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <QrCode size={16} className="text-[#c9a84c]" />
-          <p className="text-white font-bold text-sm">Your QR Code</p>
-          <span className="text-gray-600 text-xs ml-auto">Scan to register</span>
+    <div style={{ minHeight: '100vh', background: '#0b0d0f', color: '#f5f7fb', paddingBottom: 28 }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '12px 12px 30px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 4px 18px' }}>
+          <button onClick={() => navigate(-1)} style={{ width: 42, height: 42, borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', color: '#f5f7fb', cursor: 'pointer' }}>
+            <ChevronLeft size={18} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Share2 size={18} color="#f0bf47" />
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Invite & Earn</h1>
+          </div>
         </div>
 
-        <div className="flex gap-4 items-center">
-          <div className="flex-shrink-0 rounded-2xl p-3 flex items-center justify-center relative"
-            style={{ background: '#111111', border: '2px solid rgba(201,168,76,0.5)', width: 140, height: 140 }}>
-            {!qrLoaded && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl" style={{ background: '#111' }}>
-                <QrCode size={40} className="text-[#c9a84c] opacity-40" />
-                <p className="text-gray-600 text-[9px] mt-1">Loading QR...</p>
+        <div style={{ background: 'linear-gradient(135deg, rgba(35,27,12,0.95), rgba(18,20,24,0.95))', border: '1px solid rgba(240,191,71,0.22)', borderRadius: 22, padding: 18, position: 'relative', overflow: 'hidden', marginBottom: 18 }}>
+          <div style={{ position: 'absolute', top: -24, right: -20, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,191,71,0.18), transparent 68%)' }} />
+          <div style={{ color: '#b5bdc8', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>Legend Investors</div>
+          <h2 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-0.05em' }}>Invite Friends</h2>
+          <p style={{ margin: '0 0 16px', color: '#f0bf47', fontSize: 15, fontWeight: 700 }}>
+            Earn up to <span style={{ fontSize: 23, fontWeight: 900 }}>27%</span> commission instantly
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+            {[
+              { label: 'Registration Bonus', value: 'UGX 9K' },
+              { label: 'Your Code', value: user.referralCode || 'LGDEMO' },
+              { label: 'Level 1 Rate', value: '27%' },
+            ].map((item) => (
+              <div key={item.label} style={{ background: 'rgba(0,0,0,0.24)', borderRadius: 14, padding: '10px 8px', textAlign: 'center' }}>
+                <div style={{ color: '#f0bf47', fontWeight: 900, fontSize: 14, marginBottom: 4 }}>{item.value}</div>
+                <div style={{ color: '#aab3be', fontSize: 9, lineHeight: 1.3 }}>{item.label}</div>
               </div>
-            )}
-            <img
-              ref={qrRef}
-              src={qrUrl}
-              alt="QR Code"
-              className="w-full h-full object-contain rounded-xl"
-              onLoad={() => setQrLoaded(true)}
-              style={{ opacity: qrLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-            />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <p className="text-gray-500 text-xs mb-2">Share your invite link:</p>
-            <div className="rounded-xl px-3 py-2.5 mb-3 break-all" style={{ background: '#1e1e1e', border: '1px solid #333' }}>
-              <p className="text-[#c9a84c] text-[10px] leading-relaxed">{referralUrl}</p>
-            </div>
-            <button onClick={copyLink}
-              className="w-full py-3 rounded-xl font-bold text-black text-sm flex items-center justify-center gap-2 gold-gradient transition-all"
-              style={{ opacity: copied ? 0.9 : 1 }}>
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-              {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-4 mt-3 grid grid-cols-2 gap-3">
-        <button onClick={shareWhatsApp}
-          className="py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-          style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.3)', color: '#25d366' }}>
-          <span className="text-lg">💬</span> WhatsApp
-        </button>
-        <button onClick={shareTelegram}
-          className="py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-          style={{ background: 'rgba(0,136,204,0.1)', border: '1px solid rgba(0,136,204,0.3)', color: '#0088cc' }}>
-          <span className="text-lg">✈️</span> Telegram
-        </button>
-      </div>
-
-      <div className="mx-4 mt-4 rounded-2xl p-4" style={{ background: '#151515', border: '1px solid #2a2a2a' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <Users size={16} className="text-[#c9a84c]" />
-          <p className="text-white font-bold text-sm">3-Level Commission</p>
-        </div>
-
-        <div className="flex flex-col items-center mb-4">
-          <div className="w-16 h-8 rounded-xl flex items-center justify-center font-black text-xs text-black gold-gradient mb-1">YOU</div>
-          <div className="w-0.5 h-4" style={{ background: '#c9a84c' }} />
-          <div className="flex items-start gap-1 mb-1">
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-0.5 h-3" style={{ background: '#c9a84c' }} />
-                <div className="px-3 py-1.5 rounded-xl text-[10px] font-bold text-black gold-gradient">Lv1 · 27%</div>
-                <div className="w-0.5 h-3 opacity-0" />
-              </div>
-              <div className="w-0.5 h-3" style={{ background: 'rgba(201,168,76,0.5)' }} />
-            </div>
-          </div>
-          <div className="flex items-start gap-1 mb-1">
-            <div className="flex flex-col items-center">
-              <div className="px-3 py-1.5 rounded-xl text-[10px] font-bold" style={{ background: 'rgba(167,130,52,0.2)', color: '#a78234', border: '1px solid rgba(167,130,52,0.3)' }}>
-                Lv2 · 2%
-              </div>
-              <div className="w-0.5 h-3" style={{ background: 'rgba(124,97,40,0.5)' }} />
-            </div>
-          </div>
-          <div className="flex items-start gap-1">
-            <div className="px-3 py-1.5 rounded-xl text-[10px] font-bold" style={{ background: 'rgba(124,97,40,0.15)', color: '#7c6128', border: '1px solid rgba(124,97,40,0.25)' }}>
-              Lv3 · 1%
-            </div>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-2">
-          {levels.map(lvl => (
-            <div key={lvl.level} className="flex items-center justify-between p-3 rounded-xl"
-              style={{ background: '#1e1e1e', border: `1px solid ${lvl.level === 1 ? 'rgba(201,168,76,0.25)' : '#2a2a2a'}` }}>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-black px-2 py-0.5 rounded-full"
-                    style={{ background: lvl.color }}>L{lvl.level}</span>
-                  <p className="text-white text-xs font-semibold">{lvl.members} Members</p>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 22, padding: 16, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <QrCode size={16} color="#f0bf47" />
+            <span style={{ color: '#edf2f8', fontWeight: 800, fontSize: 15 }}>Your QR Code</span>
+            <span style={{ marginLeft: 'auto', color: '#8d98a4', fontSize: 11 }}>Scan to register</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div style={{ width: 142, height: 142, borderRadius: 18, padding: 12, background: '#111417', border: '2px solid rgba(240,191,71,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+              {!qrLoaded && (
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#8d98a4', fontSize: 11 }}>
+                  Loading QR...
                 </div>
-                <p className="text-gray-600 text-[10px] mt-0.5">{lvl.desc}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-black text-lg" style={{ color: lvl.color }}>{lvl.rate}</p>
-                <p className="text-gray-500 text-[10px]">{formatUGX(lvl.commission)}</p>
-              </div>
+              )}
+              <img ref={qrRef} src={qrUrl} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: qrLoaded ? 1 : 0, transition: 'opacity 0.2s ease' }} onLoad={() => setQrLoaded(true)} />
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="mx-4 mt-3 mb-6 rounded-2xl p-4" style={{ background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)' }}>
-        <p className="text-[#c9a84c] font-bold text-sm mb-2">How it works</p>
-        <div className="space-y-2 text-xs text-gray-500">
-          <p>1. Share your unique invite link or QR code with friends.</p>
-          <p>2. When they register and make a deposit, you instantly earn <strong className="text-[#c9a84c]">27%</strong> of their investment.</p>
-          <p>3. When their referrals invest, you earn <strong className="text-[#c9a84c]">2%</strong>. Their referrals earn you <strong className="text-[#c9a84c]">1%</strong>.</p>
-          <p>4. Commission is credited to your balance immediately after their recharge is approved.</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#aab3be', fontSize: 11, marginBottom: 8 }}>Share your invite link:</div>
+              <div style={{ background: '#191d22', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '10px 12px', marginBottom: 12, wordBreak: 'break-all' }}>
+                <span style={{ color: '#f0bf47', fontSize: 11, lineHeight: 1.5 }}>{referralUrl}</span>
+              </div>
+              <button onClick={copyLink} style={{ width: '100%', border: 'none', borderRadius: 12, background: 'linear-gradient(135deg, #f3d57a 0%, #dfb547 45%, #d3a536 100%)', color: '#101214', fontWeight: 900, padding: '11px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginBottom: 18 }}>
+          <button onClick={shareWhatsApp} style={{ background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.28)', borderRadius: 14, padding: '12px 10px', color: '#25d366', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+            WhatsApp
+          </button>
+          <button onClick={shareTelegram} style={{ background: 'rgba(0,136,204,0.08)', border: '1px solid rgba(0,136,204,0.28)', borderRadius: 14, padding: '12px 10px', color: '#4db7ff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+            Telegram
+          </button>
+        </div>
+
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 22, padding: 16, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <Users size={16} color="#f0bf47" />
+            <span style={{ color: '#edf2f8', fontWeight: 800 }}>3-Level Commission</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 18 }}>
+            <div style={{ background: 'linear-gradient(135deg, #f3d57a 0%, #dfb547 45%, #d3a536 100%)', color: '#101214', fontWeight: 900, borderRadius: 10, padding: '8px 14px', fontSize: 11 }}>YOU</div>
+            <div style={{ width: 2, height: 12, background: '#f0bf47', borderRadius: 999, margin: '8px 0 4px' }} />
+            {levels.map((lvl) => (
+              <div key={lvl.level} style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ background: lvl.level === 1 ? 'linear-gradient(135deg, #f3d57a 0%, #dfb547 45%, #d3a536 100%)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: lvl.level === 1 ? '#101214' : '#edf2f8', borderRadius: 10, padding: '8px 12px', fontSize: 11, fontWeight: 800 }}>{`Lv${lvl.level} · ${lvl.rate}`}</div>
+                <div style={{ width: 2, height: 8, background: 'rgba(240,191,71,0.45)', borderRadius: 999, marginTop: 5 }} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {levels.map((lvl) => (
+              <div key={lvl.level} style={{ background: '#171b20', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ background: lvl.color, color: '#101214', fontSize: 9, fontWeight: 900, borderRadius: 999, padding: '4px 6px' }}>L{lvl.level}</span>
+                    <span style={{ fontWeight: 700, color: '#edf2f8' }}>{lvl.members} Members</span>
+                  </div>
+                  <div style={{ color: '#8d98a4', fontSize: 10, marginTop: 4 }}>{lvl.desc}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: lvl.color, fontWeight: 900, fontSize: 20 }}>{lvl.rate}</div>
+                  <div style={{ color: '#aab3be', fontSize: 10 }}>{formatUGX(lvl.commission)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background: 'rgba(240,191,71,0.04)', border: '1px solid rgba(240,191,71,0.14)', borderRadius: 18, padding: 16 }}>
+          <div style={{ color: '#f0bf47', fontWeight: 900, marginBottom: 10 }}>How it works</div>
+          <div style={{ display: 'grid', gap: 8, color: '#aab3be', fontSize: 12, lineHeight: 1.6 }}>
+            <div>1. Share your unique invite link or QR code with friends.</div>
+            <div>2. When they register and make a deposit, you instantly earn <strong style={{ color: '#f0bf47' }}>27%</strong> of their investment.</div>
+            <div>3. When their referrals invest, you earn <strong style={{ color: '#f0bf47' }}>2%</strong>. Their referrals earn you <strong style={{ color: '#f0bf47' }}>1%</strong>.</div>
+            <div>4. Commission is credited to your balance immediately after their recharge is approved.</div>
+          </div>
         </div>
       </div>
     </div>
   );
-            }
+}
